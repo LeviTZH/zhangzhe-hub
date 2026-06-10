@@ -37,7 +37,10 @@
 <div class="container">
   <div class="quiz-card" id="quizScreen"></div>
 </div>
+<script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
 <script src="js/common.js"></script>
+<script src="js/data.js"></script>
+
 <script>
 const LB_KEY = 'zz_quiz_lb';
 const TIME_PER_Q = 10;
@@ -45,9 +48,11 @@ const zz = zzLoad();
 let state = { phase:'intro', questions:[], currentQ:0, score:0, answers:[], startTime:0, timeLeft:0 };
 let timerInterval = null;
 
-function init(){
+async function init(){
   initNav('quiz.html');
   state.questions = shuffleQuestions(zz.quizQuestions||[]).slice(0,10);
+  // 云端预加载排行榜
+  quizLoadRanks();
   render();
 }
 
@@ -147,18 +152,18 @@ function submitAnswer(choice){
   }, correct?600:1000);
 }
 
-function saveAndShowLB(){
-  const lb = getLB();
+async function saveAndShowLB(){
   const totalSec = Math.round((Date.now()-state.startTime)/1000);
-  lb.push({ name:state.playerName, score:state.score, total:state.questions.length, time:totalSec, date:Date.now() });
-  lb.sort((a,b)=>b.score-a.score || a.time-b.time);
-  if(lb.length>50) lb.length = 50;
-  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+  const record = { name:state.playerName, score:state.score, total:state.questions.length, time:totalSec, date:Date.now() };
+  await quizAddRank(record);
+  // 云端加载排序后的排行榜
+  await quizLoadRanks();
   render();
-  showToast('成绩已保存！');
+  showToast('成绩已保存☁️！');
 }
 
-function getLB(){
+async function getLB(){
+  // 云端优先（quizLoadRanks 已更新 localStorage）
   try{ return JSON.parse(localStorage.getItem(LB_KEY)||'[]'); } catch(e){ return []; }
 }
 

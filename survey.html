@@ -621,7 +621,7 @@ function updateProgress(){
 }
 
 // ===== 提交 =====
-function submitSurvey(){
+async function submitSurvey(){
   // Collect all field data
   const result = {};
 
@@ -662,12 +662,16 @@ function submitSurvey(){
   // Mark all sections as filled
   SECTIONS.forEach(sec => markCompleted(sec.id));
 
+  // 云端保存（异步，不阻塞界面）
+  let cloudOk = false;
+  try { cloudOk = !!(await surveySubmit(result)); } catch(e){}
+
   // Show result
   const jsonStr = JSON.stringify(result, null, 2);
   const resultEl = document.getElementById('submitResult');
   resultEl.style.display = 'block';
   resultEl.innerHTML = `
-    ✅ 问卷提交成功！共收集到 <strong>${Object.keys(result).length}</strong> 个字段的数据。<br><br>
+    ✅ 问卷提交成功！共收集到 <strong>${Object.keys(result).length}</strong> 个字段的数据。${cloudOk ? '<span style=\"color:var(--teal);\"> ☁️ 已云端保存</span>' : ''}<br><br>
     <button class="btn btn-outline btn-sm" onclick="copyJSON()">📋 复制 JSON</button>
     <button class="btn btn-outline btn-sm" onclick="downloadJSON()" style="margin-left:8px;">💾 下载 JSON 文件</button>
     <button class="btn btn-outline btn-sm" onclick="previewJSON()" style="margin-left:8px;">👁 查看 JSON</button>
@@ -676,7 +680,7 @@ function submitSurvey(){
   window._surveyResult = result;
   window._surveyJSON = jsonStr;
 
-  showToast('问卷提交成功！');
+  showToast(cloudOk ? '问卷提交成功 ☁️' : '问卷提交成功！');
   window.scrollTo({ top: document.getElementById('submitResult').offsetTop - 100, behavior:'smooth' });
 }
 
@@ -723,5 +727,7 @@ document.addEventListener('input', function(e){
 // ===== 启动 =====
 initSurvey();
 </script>
+<script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
+<script src="js/data.js"></script>
 </body>
 </html>

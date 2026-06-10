@@ -52,7 +52,10 @@ pre { background:var(--bg); border-radius:var(--radius-sm); padding:12px; font-s
 
 <input type="file" id="importFile" accept=".json" class="hidden" onchange="handleImport(event)">
 
+<script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
 <script src="js/common.js"></script>
+<script src="js/data.js"></script>
+
 <script>
 let editingData = zzLoad();
 let activeTab = 'basic';
@@ -191,10 +194,15 @@ function editChoice(si,ci,k,v){ editingData.adventureScenes[si].choices[ci][k]=v
 function removeChoice(si,ci){ editingData.adventureScenes[si].choices.splice(ci,1); switchTab('adventure'); }
 function parseRaw(){ try{ editingData=JSON.parse(document.getElementById('rawJSON').value); switchTab('raw'); showToast('JSON 解析成功'); }catch(e){ showToast('JSON 格式错误！'); } }
 
-function saveAndApply(){
-  if(zzSave(editingData)){
-    document.getElementById('saveStatus').textContent = '✅ 已保存 — ' + new Date().toLocaleTimeString();
-    showToast('数据已保存，全站同步！');
+async function saveAndApply(){
+  const localOk = zzSave(editingData);
+  // 同步到云端
+  let cloudOk = false;
+  try { cloudOk = await zzSaveCloud(editingData); } catch(e){}
+  
+  if(localOk){
+    document.getElementById('saveStatus').textContent = (cloudOk ? '✅ 云端已保存 ☁️' : '✅ 本地已保存') + ' — ' + new Date().toLocaleTimeString();
+    showToast(cloudOk ? '数据已保存，云端同步 ☁️' : '数据已保存，全站同步！');
   } else {
     showToast('保存失败，请检查存储空间');
   }

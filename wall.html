@@ -54,29 +54,23 @@
     <button class="btn btn-outline btn-sm" id="adminBtn" onclick="promptAdmin()">🔑 管理入口</button>
   </div>
 </div>
+<script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
 <script src="js/common.js"></script>
+<script src="js/data.js"></script>
+
 <script>
-const WALL_KEY = 'zz_wall_msgs';
 const ADMIN_PASS = 'zhangzhe2026';
 const noteBgs = ['#fce4e8','#e8f6f3','#edf4fd','#fdf3e0','#f0eaf7'];
 let selectedColor = 0;
 let isAdmin = false;
+let _notes = []; // 当前留言缓存
 
-function init(){
+async function init(){
   initNav('wall.html');
+  _notes = await wallLoadMessages();
   renderNotes();
-  // auto admin if local storage flag
   isAdmin = sessionStorage.getItem('zz_admin')==='true';
   updateAdminUI();
-}
-
-function getNotes(){
-  try{ return JSON.parse(localStorage.getItem(WALL_KEY)||'[]'); }
-  catch(e){ return []; }
-}
-
-function saveNotes(notes){
-  localStorage.setItem(WALL_KEY, JSON.stringify(notes));
 }
 
 function selectColor(i){
@@ -84,40 +78,42 @@ function selectColor(i){
   document.querySelectorAll('.note-color').forEach((el,idx)=>{ el.classList.toggle('selected',idx===i); });
 }
 
-function addNote(){
+async function addNote(){
   const inp = document.getElementById('msgInput');
   const text = inp.value.trim();
   if(!text) return;
-  const notes = getNotes();
-  notes.unshift({ text, color:selectedColor, time:Date.now() });
-  if(notes.length>100) notes.length = 100;
-  saveNotes(notes);
+  const msg = { text, color:selectedColor, time:Date.now() };
+  const saved = await wallAddMessage(msg);
+  // 云端返回的优先
+  _notes.unshift(saved && saved._id ? { ...msg, _id: saved._id || saved.id, id: saved.id } : msg);
+  if(_notes.length>100) _notes.length = 100;
   inp.value = '';
   renderNotes();
-  showToast('留言已发送！');
+  showToast('留言已发送☁️');
 }
 
-function deleteNote(index){
+async function deleteNote(index){
   if(!isAdmin) return;
-  const notes = getNotes();
-  notes.splice(index,1);
-  saveNotes(notes);
+  const n = _notes[index];
+  if(n && (n._id || n.id)){
+    await wallDeleteMessage(n._id || n.id);
+  }
+  _notes.splice(index,1);
   renderNotes();
   showToast('留言已删除');
 }
 
 function renderNotes(){
-  const notes = getNotes();
   const grid = document.getElementById('noteGrid');
-  if(!notes.length){
+  if(!_notes.length){
     grid.innerHTML = '<div class="empty-wall">还没有留言，来做第一个留言的人吧 🎈</div>';
     return;
   }
-  grid.innerHTML = notes.map((n,i)=>`
+  grid.innerHTML = _notes.map((n,i)=>`
     <div class="note" style="background:${noteBgs[n.color||0]};transform:rotate(${(i%3-1)*2}deg);">
       ${isAdmin?`<button class="note-delete" onclick="deleteNote(${i})">×</button>`:''}
       <div class="note-text">${escNote(n.text)}</div>
-      <div class="note-time">${timeAgo(n.time)}</div>
+      <div class="note-time">${timeAgo(n.time||n.created_at)}</div>
     </div>
   `).join('');
 }
@@ -125,7 +121,8 @@ function renderNotes(){
 function escNote(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function timeAgo(ts){
-  const sec = Math.floor((Date.now()-ts)/1000);
+  const t = typeof ts === 'number' ? ts : (ts ? new Date(ts).getTime() : Date.now());
+  const sec = Math.floor((Date.now()-t)/1000);
   if(sec<60) return '刚刚';
   if(sec<3600) return Math.floor(sec/60)+'分钟前';
   if(sec<86400) return Math.floor(sec/3600)+'小时前';
