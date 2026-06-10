@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>关于张哲的一切 · 信息收集问卷</title>
+<style>
+/* ===== 变量 ===== */
+:root {
+  --rose: #e8536c; --rose-light: #fce4e8; --rose-dark: #c0394b;
+  --pink: #f098a7; --pink-light: #fef0f3; --gold: #d4a843; --gold-light: #fdf3e0;
+  --teal: #3d9e8b; --teal-light: #e8f6f3; --purple: #7b5ea7; --purple-light: #f0eaf7;
+  --blue: #4a8fe7; --blue-light: #edf4fd;
+  --bg: #fdf8f9; --surface: #ffffff; --text: #3d2c33; --text-muted: #8c7a80;
+  --text-hint: #b8a8ad; --border: #e8dce0; --border-light: #f2eaec;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow: 0 2px 16px rgba(232,83,108,0.08);
+  --font: "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--font); background:var(--bg); color:var(--text); line-height:1.7; min-height:100vh; }
+
+/* ===== 头部 ===== */
+.header {
+  background: linear-gradient(135deg, var(--rose), var(--pink), var(--purple));
+  color:#fff; padding:40px 20px 60px; text-align:center; position:relative; overflow:hidden;
+}
+.header::after {
+  content:''; position:absolute; bottom:-30px; left:50%; transform:translateX(-50%);
+  width:120%; height:60px; background:var(--bg); border-radius:50%;
+}
+.header h1 { font-size:28px; font-weight:700; margin-bottom:8px; }
+.header p { font-size:15px; opacity:0.9; max-width:500px; margin:0 auto; }
+
+/* ===== 进度条 ===== */
+.progress-wrap { max-width:700px; margin:-30px auto 0; padding:0 20px; position:relative; z-index:2; }
+.progress-bar-outer {
+  background:var(--surface); border-radius:20px; height:8px; overflow:hidden; box-shadow:var(--shadow);
+}
+.progress-bar-inner {
+  height:100%; background:linear-gradient(90deg,var(--rose),var(--pink));
+  border-radius:20px; transition:width 0.4s ease; width:0%;
+}
+.progress-text { text-align:center; font-size:13px; color:var(--text-muted); margin-top:8px; }
+
+/* ===== 主体 ===== */
+.container { max-width:700px; margin:0 auto; padding:20px 20px 80px; }
+.section {
+  background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:28px 24px; margin-bottom:20px; border-left:4px solid transparent;
+  transition:border-color 0.3s;
+}
+.section.completed { border-left-color:var(--teal); }
+.section.active { border-left-color:var(--rose); }
+.section-head {
+  display:flex; align-items:center; gap:10px; margin-bottom:20px; cursor:pointer;
+  user-select:none;
+}
+.section-icon { font-size:28px; }
+.section-num {
+  width:28px; height:28px; border-radius:50%; background:var(--rose-light);
+  color:var(--rose); display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; flex-shrink:0;
+}
+.section.completed .section-num { background:var(--teal-light); color:var(--teal); }
+.section-title { font-size:17px; font-weight:700; flex:1; }
+.section-hint { font-size:12px; color:var(--text-hint); }
+.section-body { display:none; }
+.section.open .section-body { display:block; }
+.section-toggle { font-size:14px; color:var(--text-hint); transition:transform 0.3s; }
+.section.open .section-toggle { transform:rotate(180deg); }
+
+/* ===== 表单 ===== */
+.form-group { margin-bottom:18px; }
+.form-group:last-child { margin-bottom:0; }
+.label { display:block; font-size:14px; font-weight:600; margin-bottom:6px; color:var(--text); }
+.label .emoji { margin-right:4px; }
+.label .required { color:var(--rose); margin-left:2px; }
+.hint { font-size:12px; color:var(--text-hint); margin-top:4px; }
+.input, .textarea, .select {
+  width:100%; padding:10px 14px; border:1.5px solid var(--border); border-radius:var(--radius-sm);
+  font-size:14px; font-family:var(--font); color:var(--text); background:var(--bg);
+  transition:border-color 0.3s, box-shadow 0.3s; outline:none;
+}
+.input:focus, .textarea:focus, .select:focus {
+  border-color:var(--rose); box-shadow:0 0 0 3px var(--rose-light);
+}
+.textarea { resize:vertical; min-height:80px; }
+.select { cursor:pointer; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238c7a80' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:36px; }
+
+/* ===== 标签/多项输入 ===== */
+.tag-input-wrap { display:flex; gap:8px; }
+.tag-input-wrap .input { flex:1; }
+.tag-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; min-height:24px; }
+.tag {
+  display:inline-flex; align-items:center; gap:4px; padding:4px 12px;
+  background:var(--rose-light); border-radius:20px; font-size:13px; color:var(--rose);
+  animation:tagIn 0.25s ease;
+}
+.tag .tag-remove { background:none; border:none; color:var(--rose); cursor:pointer; font-size:15px; line-height:1; padding:0 2px; }
+@keyframes tagIn { from{opacity:0;transform:scale(0.8);} to{opacity:1;transform:scale(1);} }
+
+/* ===== 纪念日行 ===== */
+.memory-row {
+  display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;
+  background:var(--bg); padding:10px; border-radius:var(--radius-sm);
+}
+.memory-row .input { width:auto; }
+.memory-row .input[type="date"] { max-width:155px; }
+.memory-row .input[placeholder="事件名称"] { flex:1; min-width:120px; }
+.memory-row .input[placeholder="Emoji"] { max-width:70px; }
+
+/* ===== 题目行 ===== */
+.quiz-row {
+  background:var(--bg); border-radius:var(--radius-sm); padding:16px; margin-bottom:12px;
+}
+.quiz-row .opts-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+.opt-item { display:flex; align-items:center; gap:6px; }
+.opt-item .input { flex:1; }
+
+/* ===== 场景行 ===== */
+.scene-row {
+  background:var(--bg); border-radius:var(--radius-sm); padding:16px; margin-bottom:12px;
+}
+.choice-row { display:flex; gap:8px; align-items:center; margin-top:6px; }
+
+/* ===== 按钮 ===== */
+.btn {
+  padding:8px 18px; border:none; border-radius:var(--radius-sm); cursor:pointer;
+  font-size:13px; font-weight:600; font-family:var(--font); transition:all 0.2s;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.btn-primary { background:var(--rose); color:#fff; }
+.btn-primary:hover { background:var(--rose-dark); transform:translateY(-1px); }
+.btn-outline { background:transparent; border:1.5px solid var(--border); color:var(--text-muted); }
+.btn-outline:hover { border-color:var(--rose); color:var(--rose); }
+.btn-sm { padding:5px 12px; font-size:12px; }
+.btn-lg { padding:14px 36px; font-size:16px; border-radius:var(--radius); }
+.btn-danger { background:transparent; border:1.5px solid var(--rose); color:var(--rose); }
+.btn-ghost { background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px; padding:0 4px; line-height:1; }
+
+/* ===== 提交区 ===== */
+.submit-area { text-align:center; padding:30px 0; }
+.submit-area .btn { box-shadow:0 4px 20px rgba(232,83,108,0.3); }
+.submit-result {
+  background:var(--teal-light); color:var(--teal); border-radius:var(--radius);
+  padding:16px 20px; text-align:center; margin-top:16px; display:none;
+  font-weight:600;
+}
+
+/* ===== Toast ===== */
+.toast {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:999;
+  background:var(--text); color:#fff; padding:12px 24px; border-radius:30px;
+  font-size:14px; animation:toastIn 0.3s ease,toastOut 0.3s ease 2s forwards;
+  pointer-events:none;
+}
+@keyframes toastIn { from{opacity:0;transform:translateX(-50%) translateY(20px);} to{opacity:1;transform:translateX(-50%) translateY(0);} }
+@keyframes toastOut { from{opacity:1;} to{opacity:0;} }
+
+/* ===== 响应式 ===== */
+@media(max-width:500px){
+  .header h1 { font-size:22px; }
+  .section { padding:20px 16px; }
+  .quiz-row .opts-grid { grid-template-columns:1fr; }
+  .memory-row .input[type="date"] { max-width:140px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 头部 ===== -->
+<div class="header">
+  <h1>📋 关于张哲的一切</h1>
+  <p>这是一份超级详细的调查问卷，旨在收集关于张哲的全部信息。<br>请尽量详细填写你知道的内容，每一条都可能出现在网站上！</p>
+</div>
+
+<!-- ===== 进度条 ===== -->
+<div class="progress-wrap">
+  <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
+  <div class="progress-text" id="progressText">已完成 0 / 9 个板块</div>
+</div>
+
+<!-- ===== 主体 ===== -->
+<div class="container" id="surveyContainer"></div>
+
+<!-- ===== 提交 ===== -->
+<div class="submit-area">
+  <button class="btn btn-primary btn-lg" onclick="submitSurvey()">📤 提交问卷 · 生成 JSON 数据</button>
+  <div class="submit-result" id="submitResult"></div>
+</div>
+
+<script>
+// ===== 问卷数据结构 =====
+const SECTIONS = [
+  {
+    id:'basic', icon:'👤', title:'基本信息', hint:'必填',
+    fields:[
+      { key:'name', label:'姓名', hint:'张哲的真名', required:true, type:'text', placeholder:'例如：张哲' },
+      { key:'nickname', label:'昵称/外号', hint:'平时怎么称呼他？', type:'text', placeholder:'例如：哲哲、阿哲' },
+      { key:'birthday', label:'生日', hint:'公历生日', type:'date' },
+      { key:'zodiac', label:'星座', type:'select', options:['','白羊座','金牛座','双子座','巨蟹座','狮子座','处女座','天秤座','天蝎座','射手座','摩羯座','水瓶座','双鱼座'] },
+      { key:'mbti', label:'MBTI 人格', hint:'如果知道的话', type:'select', options:['','INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'] },
+      { key:'height', label:'身高 (cm)', type:'number', placeholder:'例如：178' },
+      { key:'hometown', label:'家乡', type:'text', placeholder:'例如：湖南长沙' },
+      { key:'city', label:'现居城市', type:'text', placeholder:'例如：北京' },
+      { key:'school_job', label:'学校 / 职业', type:'text', placeholder:'例如：XX大学计算机系' },
+      { key:'bio', label:'一句话/一段话描述张哲', hint:'这个会显示在网站首页', type:'textarea', placeholder:'他是什么样的一个人？有什么特点？最让人印象深刻的是什么？' },
+      { key:'emoji_list', label:'最能代表张哲的 Emoji（选3个）', hint:'会用于头像、装饰等', type:'text', placeholder:'例如：🦊 🎮 🌶' }
+    ]
+  },
+  {
+    id:'appearance', icon:'🎨', title:'外貌特征', hint:'用于画像馆生成头像',
+    fields:[
+      { key:'face_shape', label:'脸型', type:'select', options:['','圆脸','方脸','长脸','瓜子脸','心形脸','鹅蛋脸'] },
+      { key:'eye_type', label:'眼睛', type:'select', options:['','单眼皮','双眼皮','内双','丹凤眼','桃花眼','圆眼'] },
+      { key:'hair_style', label:'发型', type:'select', options:['','短发','中长发','长发','寸头','卷发','刘海','中分','偏分','背头'] },
+      { key:'hair_color', label:'发色', type:'select', options:['','黑色','深棕色','浅棕色','其他'] },
+      { key:'skin_tone', label:'肤色', type:'select', options:['','偏白','自然','偏深','小麦色'] },
+      { key:'glasses', label:'戴眼镜吗？', type:'select', options:['','不戴','近视眼镜','偶尔戴','墨镜爱好者'] },
+      { key:'dimples', label:'有酒窝吗？', type:'select', options:['','有','没有','只有一个'] },
+      { key:'style', label:'日常穿衣风格', type:'text', placeholder:'例如：休闲风、运动风、日系、街头...' },
+      { key:'feature_note', label:'最有辨识度的外貌特征', type:'textarea', placeholder:'例如：浓眉、高鼻梁、笑起来眼睛眯成一条缝...' }
+    ]
+  },
+  {
+    id:'personality', icon:'🧠', title:'性格与习惯', hint:'越真实越好',
+    fields:[
+      { key:'personality_tags', label:'性格关键词（多个用逗号分开）', type:'text', placeholder:'例如：幽默、内向、细心、拖延症、社恐' },
+      { key:'sleep_time', label:'一般几点睡？', type:'select', options:['','10点前','10-11点','11-12点','12-1点','凌晨1-2点','凌晨2-3点','通宵不睡'] },
+      { key:'wake_time', label:'一般几点起？', type:'select', options:['','6点前','6-7点','7-8点','8-9点','9-10点','10点以后','下午才起'] },
+      { key:'catchphrase', label:'口头禅', type:'text', placeholder:'例如：笑死、离谱、无所谓' },
+      { key:'strengths', label:'优点', type:'textarea', placeholder:'他最大的优点是什么？' },
+      { key:'weaknesses', label:'缺点 / 小毛病', type:'textarea', placeholder:'他有什么让人又爱又恨的小毛病？' },
+      { key:'pet_peeve', label:'最讨厌的事情', type:'textarea', placeholder:'什么事会让他炸毛？' },
+      { key:'hidden_talent', label:'不为人知的隐藏技能', type:'textarea', placeholder:'例如：会弹钢琴、做饭超好吃、模仿达人...' }
+    ]
+  },
+  {
+    id:'favorites', icon:'❤️', title:'喜好清单', hint:'越全越好',
+    sections:[
+      {
+        label:'🎮 喜欢的游戏', key:'games', type:'tags',
+        examples:'暗区突围、原神、王者荣耀、LOL、CS2、星穹铁道...'
+      },
+      {
+        label:'🍔 喜欢的食物', key:'foods', type:'tags',
+        examples:'火锅、麻辣烫、炸鸡、烧烤、日料、螺蛳粉...'
+      },
+      {
+        label:'🎵 喜欢的歌曲 / 歌手', key:'songs', type:'tags',
+        examples:'晴天、起风了、周杰伦、林俊杰...'
+      },
+      {
+        label:'🎨 喜欢的颜色', key:'colors', type:'tags',
+        examples:'红色、黑色、蓝色、粉色...'
+      },
+      {
+        label:'🎬 喜欢的电影 / 剧集', key:'movies', type:'tags',
+        examples:'星际穿越、甄嬛传、鬼灭之刃...'
+      },
+      {
+        label:'📚 喜欢的书 / 动漫', key:'books', type:'tags',
+        examples:'三体、海贼王、进击的巨人...'
+      },
+      {
+        label:'⚽ 喜欢的运动 / 活动', key:'sports', type:'tags',
+        examples:'打篮球、跑步、打羽毛球、躺平...'
+      },
+      {
+        label:'🧋 喜欢的饮料', key:'drinks', type:'tags',
+        examples:'奶茶、可乐、冰美式、柠檬茶...'
+      },
+      {
+        label:'🐱 喜欢的动物', key:'animals', type:'tags',
+        examples:'猫、狗、熊猫...'
+      },
+      {
+        label:'🌸 喜欢的季节', key:'seasons', type:'tags',
+        examples:'春天、夏天、秋天、冬天'
+      }
+    ]
+  },
+  {
+    id:'memories', icon:'📅', title:'重要日期 & 纪念日', hint:'每个日期都会出现在倒计时页面',
+    type:'memories',
+    defaultItems:[
+      { date:'', label:'张哲的生日', emoji:'🎂' },
+      { date:'', label:'第一次见面', emoji:'💫' },
+      { date:'', label:'', emoji:'📌' }
+    ]
+  },
+  {
+    id:'quiz', icon:'❓', title:'冷知识题库', hint:'出一些关于张哲的选择题，用来测试谁最了解他',
+    type:'quiz',
+    defaultItems:[
+      { q:'张哲最喜欢的游戏是？', opts:['暗区突围','王者荣耀','原神','LOL'], ans:0 },
+      { q:'张哲能多能吃辣？', opts:['微辣','中辣','特辣','无敌辣'], ans:3 },
+      { q:'张哲一般几点睡？', opts:['10点','12点','凌晨2点','通宵'], ans:2 },
+      { q:'张哲最喜欢的颜色？', opts:['蓝色','红色','黑色','白色'], ans:1 },
+      { q:'张哲的爱好是？', opts:['看书','打游戏','跑步','做饭'], ans:1 }
+    ]
+  },
+  {
+    id:'adventure', icon:'🎮', title:'大冒险剧情', hint:'设计以张哲为主角的文字冒险游戏剧情',
+    type:'adventure',
+    defaultItems:[
+      { id:'start', text:'又是一个平凡的下午，张哲在宿舍打游戏。突然手机响了...', choices:[
+        { text:'接电话', next:'phone' }, { text:'继续打游戏', next:'game' }
+      ]},
+      { id:'phone', text:'是朋友约他去吃火锅！张哲的肚子咕咕叫了起来...', choices:[
+        { text:'立刻出发！', next:'hotpot_go' }, { text:'"等我打完这局"', next:'game' }
+      ]},
+      { id:'game', text:'游戏打得太投入，不知不觉天都黑了。肚子好饿...', choices:[
+        { text:'点外卖', next:'order' }, { text:'出去觅食', next:'walk' }
+      ]},
+      { id:'hotpot_go', text:'火锅店里热气腾腾，张哲吃得满头大汗，太爽了！', ending:'happy', emoji:'🍲' },
+      { id:'order', text:'外卖到了，但是送错了——是隔壁的奶茶！意外的惊喜。', ending:'lucky', emoji:'🧋' },
+      { id:'walk', text:'出门遇到了一只超可爱的流浪猫，张哲蹲下来摸了半小时。', ending:'cozy', emoji:'🐱' }
+    ]
+  },
+  {
+    id:'contact', icon:'📱', title:'联系方式（选填）', hint:'仅用于网站联系信息展示，不会公开暴露',
+    fields:[
+      { key:'wechat', label:'微信号', type:'text', placeholder:'选填' },
+      { key:'qq', label:'QQ 号', type:'text', placeholder:'选填' },
+      { key:'bilibili', label:'B站 UID', type:'text', placeholder:'选填' },
+      { key:'douyin', label:'抖音号', type:'text', placeholder:'选填' },
+      { key:'weibo', label:'微博昵称', type:'text', placeholder:'选填' },
+      { key:'game_id', label:'游戏 ID（王者/原神等）', type:'text', placeholder:'选填' }
+    ]
+  },
+  {
+    id:'extra', icon:'💬', title:'补充信息', hint:'还有什么想说的？',
+    fields:[
+      { key:'fun_fact', label:'关于张哲的趣事', type:'textarea', placeholder:'分享一件关于他的搞笑/温馨/离谱的事情' },
+      { key:'dream', label:'张哲的梦想/目标', type:'textarea', placeholder:'他有什么人生目标或小梦想？' },
+      { key:'first_impression', label:'你对张哲的第一印象', type:'textarea', placeholder:'第一次见到/认识他是什么感觉？' },
+      { key:'describe_3words', label:'用三个词形容张哲', type:'text', placeholder:'例如：幽默 靠谱 睡不醒' },
+      { key:'message', label:'想对张哲说的话', type:'textarea', placeholder:'在这里写一段话给张哲吧~' },
+      { key:'your_name', label:'你的名字（选填）', type:'text', placeholder:'你是谁？' }
+    ]
+  }
+];
+
+// ===== 渲染问卷 =====
+let surveyData = {};
+
+function initSurvey(){
+  const container = document.getElementById('surveyContainer');
+  let html = '';
+
+  SECTIONS.forEach((sec, idx) => {
+    const num = idx + 1;
+    html += `<div class="section open" id="sec-${sec.id}" data-sec="${sec.id}">
+      <div class="section-head" onclick="toggleSection('${sec.id}')">
+        <span class="section-icon">${sec.icon}</span>
+        <span class="section-num">${num}</span>
+        <span class="section-title">${sec.title}</span>
+        <span class="section-hint">${sec.hint}</span>
+        <span class="section-toggle">▼</span>
+      </div>
+      <div class="section-body">`;
+
+    // --- Regular fields ---
+    if(sec.fields){
+      sec.fields.forEach(f => {
+        html += `<div class="form-group">
+          <label class="label">${f.required?'<span class="required">*</span>':''}${f.label}</label>`;
+        if(f.type === 'textarea'){
+          html += `<textarea class="textarea" id="field-${f.key}" placeholder="${f.placeholder||''}" rows="${f.key==='bio'||f.key==='feature_note'?3:2}"></textarea>`;
+        } else if(f.type === 'select'){
+          html += `<select class="select" id="field-${f.key}">`;
+          (f.options||[]).forEach(o => html += `<option value="${o}">${o||'—— 请选择 ——'}</option>`);
+          html += `</select>`;
+        } else if(f.type === 'number'){
+          html += `<input class="input" type="number" id="field-${f.key}" placeholder="${f.placeholder||''}" style="max-width:160px;">`;
+        } else {
+          html += `<input class="input" type="${f.type}" id="field-${f.key}" placeholder="${f.placeholder||''}">`;
+        }
+        if(f.hint) html += `<div class="hint">${f.hint}</div>`;
+        html += `</div>`;
+      });
+    }
+
+    // --- Tag sections (favorites) ---
+    if(sec.sections){
+      sec.sections.forEach(sub => {
+        html += `<div class="form-group">
+          <label class="label">${sub.label}</label>
+          <div class="tag-input-wrap">
+            <input class="input" id="tagInput-${sub.key}" placeholder="${sub.examples||'输入后回车添加'}" onkeydown="handleTagKey(event,'${sub.key}')">
+            <button class="btn btn-outline btn-sm" onclick="addTag('${sub.key}')">添加</button>
+          </div>
+          <div class="tag-list" id="tagList-${sub.key}"></div>
+        </div>`;
+      });
+    }
+
+    // --- Memories ---
+    if(sec.type === 'memories'){
+      html += `<div id="memoriesContainer-${sec.id}"></div>
+        <button class="btn btn-outline btn-sm" onclick="addMemory('${sec.id}')" style="margin-top:8px;">+ 添加纪念日</button>`;
+    }
+
+    // --- Quiz ---
+    if(sec.type === 'quiz'){
+      html += `<div id="quizContainer-${sec.id}"></div>
+        <button class="btn btn-outline btn-sm" onclick="addQuizItem('${sec.id}')" style="margin-top:8px;">+ 添加题目</button>`;
+    }
+
+    // --- Adventure ---
+    if(sec.type === 'adventure'){
+      html += `<div id="adventureContainer-${sec.id}"></div>
+        <button class="btn btn-outline btn-sm" onclick="addAdventureScene('${sec.id}')" style="margin-top:8px;">+ 添加场景</button>`;
+    }
+
+    html += `</div></div>`;
+  });
+
+  container.innerHTML = html;
+
+  // Initialize dynamic sections
+  SECTIONS.forEach(sec => {
+    if(sec.type === 'memories') initMemories(sec);
+    if(sec.type === 'quiz') initQuiz(sec);
+    if(sec.type === 'adventure') initAdventure(sec);
+  });
+
+  updateProgress();
+}
+
+// ===== Section toggle =====
+function toggleSection(id){
+  const sec = document.getElementById('sec-'+id);
+  sec.classList.toggle('open');
+}
+
+// ===== Tag helpers =====
+function handleTagKey(e, key){
+  if(e.key === 'Enter'){ e.preventDefault(); addTag(key); }
+}
+function addTag(key){
+  const input = document.getElementById('tagInput-'+key);
+  const val = input.value.trim();
+  if(!val) return;
+  if(!surveyData[key]) surveyData[key] = [];
+  if(surveyData[key].includes(val)){ input.value=''; return; }
+  surveyData[key].push(val);
+  renderTags(key);
+  input.value = '';
+  input.focus();
+  markCompleted('favorites');
+}
+function removeTag(key, idx){
+  surveyData[key].splice(idx,1);
+  renderTags(key);
+}
+function renderTags(key){
+  const list = document.getElementById('tagList-'+key);
+  if(!list) return;
+  list.innerHTML = (surveyData[key]||[]).map((t,i) =>
+    `<span class="tag">${escHtml(t)}<button class="tag-remove" onclick="removeTag('${key}',${i})">×</button></span>`
+  ).join('');
+}
+
+// ===== Memories =====
+function initMemories(sec){
+  surveyData['_memories'] = surveyData['_memories'] || sec.defaultItems.map(m=>({...m}));
+  renderMemories(sec.id);
+}
+function renderMemories(secId){
+  const container = document.getElementById('memoriesContainer-'+secId);
+  const items = surveyData['_memories'] || [];
+  container.innerHTML = items.map((m,i) => `
+    <div class="memory-row">
+      <input class="input" type="date" value="${escHtml(m.date||'')}" onchange="updateMemory(${i},'date',this.value)">
+      <input class="input" value="${escHtml(m.label||'')}" onchange="updateMemory(${i},'label',this.value)" placeholder="事件名称">
+      <input class="input" value="${escHtml(m.emoji||'')}" onchange="updateMemory(${i},'emoji',this.value)" placeholder="Emoji" style="max-width:70px;">
+      <button class="btn btn-ghost" onclick="removeMemory(${i})" style="color:var(--rose);" title="删除">🗑</button>
+    </div>
+  `).join('');
+}
+function addMemory(secId){
+  surveyData['_memories'] = surveyData['_memories'] || [];
+  surveyData['_memories'].push({ date:'', label:'', emoji:'📌' });
+  renderMemories(secId);
+}
+function updateMemory(i, k, v){ surveyData['_memories'][i][k] = v; markCompleted('memories'); }
+function removeMemory(i){ surveyData['_memories'].splice(i,1); renderMemories('memories'); }
+
+// ===== Quiz =====
+function initQuiz(sec){
+  surveyData['_quiz'] = surveyData['_quiz'] || sec.defaultItems.map(q=>({...q, opts:[...q.opts]}));
+  renderQuiz(sec.id);
+}
+function renderQuiz(secId){
+  const container = document.getElementById('quizContainer-'+secId);
+  const items = surveyData['_quiz'] || [];
+  container.innerHTML = items.map((q,i) => `
+    <div class="quiz-row">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-size:14px;">第${i+1}题</strong>
+        <button class="btn btn-ghost" onclick="removeQuizItem(${i})" style="color:var(--rose);" title="删除">🗑</button>
+      </div>
+      <div class="form-group" style="margin-top:8px;">
+        <input class="input" value="${escHtml(q.q)}" onchange="updateQuizItem(${i},'q',this.value)" placeholder="题目">
+      </div>
+      <div class="opts-grid">
+        ${(q.opts||[]).map((o,oi) => `
+          <div class="opt-item">
+            <input type="radio" name="quizAns${i}" ${q.ans===oi?'checked':''} onchange="updateQuizItem(${i},'ans',${oi})">
+            <input class="input" value="${escHtml(o)}" onchange="updateQuizItem(${i},'opts',this.value,${oi})" placeholder="选项${oi+1}">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+function addQuizItem(secId){
+  surveyData['_quiz'] = surveyData['_quiz'] || [];
+  surveyData['_quiz'].push({ q:'', opts:['','','',''], ans:0 });
+  renderQuiz(secId);
+}
+function updateQuizItem(i, k, v, oi){
+  if(k==='opts') surveyData['_quiz'][i].opts[oi] = v;
+  else surveyData['_quiz'][i][k] = v;
+  markCompleted('quiz');
+}
+function removeQuizItem(i){ surveyData['_quiz'].splice(i,1); renderQuiz('quiz'); }
+
+// ===== Adventure =====
+function initAdventure(sec){
+  surveyData['_adventure'] = surveyData['_adventure'] || sec.defaultItems.map(s=>JSON.parse(JSON.stringify(s)));
+  renderAdventure(sec.id);
+}
+function renderAdventure(secId){
+  const container = document.getElementById('adventureContainer-'+secId);
+  const items = surveyData['_adventure'] || [];
+  container.innerHTML = items.map((s,i) => `
+    <div class="scene-row">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:14px;">场景 ${s.id}</strong>
+        <button class="btn btn-ghost" onclick="removeAdventureScene(${i})" style="color:var(--rose);" title="删除">🗑</button>
+      </div>
+      <div class="form-group">
+        <label class="label" style="font-size:12px;">场景 ID</label>
+        <input class="input" value="${escHtml(s.id)}" onchange="updateAdventureScene(${i},'id',this.value)" style="max-width:160px;">
+      </div>
+      <div class="form-group">
+        <label class="label" style="font-size:12px;">叙述文字</label>
+        <textarea class="textarea" onchange="updateAdventureScene(${i},'text',this.value)" rows="2">${escHtml(s.text||'')}</textarea>
+      </div>
+      ${s.ending ? `
+      <div class="form-group">
+        <label class="label" style="font-size:12px;">结局</label>
+        <div style="display:flex;gap:8px;">
+          <input class="input" value="${escHtml(s.ending)}" onchange="updateAdventureScene(${i},'ending',this.value)" placeholder="结局标签" style="max-width:120px;">
+          <input class="input" value="${escHtml(s.emoji||'')}" onchange="updateAdventureScene(${i},'emoji',this.value)" placeholder="emoji" style="max-width:70px;">
+          <button class="btn btn-sm btn-outline" onclick="convertEndingToChoices(${i})" title="转为分支场景">→ 改成分支</button>
+        </div>
+      </div>` : `
+      <div style="margin-top:8px;">
+        <span style="font-size:12px;color:var(--text-muted);">选择分支：</span>
+        ${(s.choices||[]).map((c,ci) => `
+          <div class="choice-row">
+            <input class="input" value="${escHtml(c.text)}" onchange="updateChoice(${i},${ci},'text',this.value)" placeholder="选项文字" style="flex:1;">
+            <span style="font-size:12px;color:var(--text-muted);">→</span>
+            <input class="input" value="${escHtml(c.next||'')}" onchange="updateChoice(${i},${ci},'next',this.value)" placeholder="下一场景ID" style="max-width:120px;">
+            <button class="btn btn-ghost" onclick="removeChoice(${i},${ci})" style="color:var(--rose);">×</button>
+          </div>
+        `).join('')}
+        <button class="btn btn-outline btn-sm" onclick="addChoice(${i})" style="margin-top:6px;">+ 添加选项</button>
+      </div>`}
+    </div>
+  `).join('');
+}
+function addAdventureScene(secId){
+  surveyData['_adventure'] = surveyData['_adventure'] || [];
+  surveyData['_adventure'].push({ id:'scene_'+Date.now(), text:'', choices:[{ text:'', next:'start' }] });
+  renderAdventure(secId);
+}
+function updateAdventureScene(i, k, v){ surveyData['_adventure'][i][k]=v; markCompleted('adventure'); }
+function removeAdventureScene(i){ surveyData['_adventure'].splice(i,1); renderAdventure('adventure'); }
+function addChoice(i){
+  if(!surveyData['_adventure'][i].choices) surveyData['_adventure'][i].choices=[];
+  delete surveyData['_adventure'][i].ending; delete surveyData['_adventure'][i].emoji;
+  surveyData['_adventure'][i].choices.push({ text:'', next:'start' });
+  renderAdventure('adventure');
+}
+function removeChoice(si, ci){
+  surveyData['_adventure'][si].choices.splice(ci,1);
+  if(surveyData['_adventure'][si].choices.length===0){
+    surveyData['_adventure'][si].ending='ending'; surveyData['_adventure'][si].emoji='🎬';
+    delete surveyData['_adventure'][si].choices;
+  }
+  renderAdventure('adventure');
+}
+function updateChoice(si, ci, k, v){ surveyData['_adventure'][si].choices[ci][k]=v; markCompleted('adventure'); }
+function convertEndingToChoices(i){
+  delete surveyData['_adventure'][i].ending; delete surveyData['_adventure'][i].emoji;
+  surveyData['_adventure'][i].choices = [{ text:'重新开始', next:'start' }];
+  renderAdventure('adventure');
+}
+
+// ===== 进度 =====
+function markCompleted(id){
+  const sec = document.getElementById('sec-'+id);
+  if(sec) sec.classList.add('completed');
+  updateProgress();
+}
+function updateProgress(){
+  let completed = 0;
+  SECTIONS.forEach(sec => {
+    const el = document.getElementById('sec-'+sec.id);
+    if(el && el.classList.contains('completed')) completed++;
+  });
+  const pct = Math.round((completed / SECTIONS.length) * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `已完成 ${completed} / ${SECTIONS.length} 个板块`;
+}
+
+// ===== 提交 =====
+function submitSurvey(){
+  // Collect all field data
+  const result = {};
+
+  SECTIONS.forEach(sec => {
+    // Regular fields
+    if(sec.fields){
+      sec.fields.forEach(f => {
+        const el = document.getElementById('field-'+f.key);
+        if(!el) return;
+        const val = el.value.trim();
+        if(val) result[f.key] = f.type==='number'?Number(val):val;
+      });
+    }
+    // Tags
+    if(sec.sections){
+      sec.sections.forEach(sub => {
+        const tags = surveyData[sub.key] || [];
+        if(tags.length > 0) result[sub.key] = tags;
+      });
+    }
+    // Memories
+    if(sec.type === 'memories'){
+      const memories = (surveyData['_memories']||[]).filter(m=>m.date||m.label);
+      if(memories.length>0) result.memories = memories;
+    }
+    // Quiz
+    if(sec.type === 'quiz'){
+      const quiz = (surveyData['_quiz']||[]).filter(q=>q.q.trim());
+      if(quiz.length>0) result.quizQuestions = quiz;
+    }
+    // Adventure
+    if(sec.type === 'adventure'){
+      const adv = (surveyData['_adventure']||[]).filter(s=>s.id&&s.text);
+      if(adv.length>0) result.adventureScenes = adv;
+    }
+  });
+
+  // Mark all sections as filled
+  SECTIONS.forEach(sec => markCompleted(sec.id));
+
+  // Show result
+  const jsonStr = JSON.stringify(result, null, 2);
+  const resultEl = document.getElementById('submitResult');
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = `
+    ✅ 问卷提交成功！共收集到 <strong>${Object.keys(result).length}</strong> 个字段的数据。<br><br>
+    <button class="btn btn-outline btn-sm" onclick="copyJSON()">📋 复制 JSON</button>
+    <button class="btn btn-outline btn-sm" onclick="downloadJSON()" style="margin-left:8px;">💾 下载 JSON 文件</button>
+    <button class="btn btn-outline btn-sm" onclick="previewJSON()" style="margin-left:8px;">👁 查看 JSON</button>
+    <pre id="jsonPreview" style="display:none;text-align:left;margin-top:12px;background:var(--bg);padding:16px;border-radius:var(--radius-sm);font-size:12px;max-height:400px;overflow:auto;">${escHtml(jsonStr)}</pre>
+  `;
+  window._surveyResult = result;
+  window._surveyJSON = jsonStr;
+
+  showToast('问卷提交成功！');
+  window.scrollTo({ top: document.getElementById('submitResult').offsetTop - 100, behavior:'smooth' });
+}
+
+function copyJSON(){
+  navigator.clipboard.writeText(window._surveyJSON).then(()=>showToast('JSON 已复制到剪贴板！'));
+}
+function downloadJSON(){
+  const blob = new Blob([window._surveyJSON], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const name = (window._surveyResult.name || 'zhangzhe') + '-survey-' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = name;
+  a.click();
+  showToast('JSON 文件已下载！');
+}
+function previewJSON(){
+  const pre = document.getElementById('jsonPreview');
+  pre.style.display = pre.style.display === 'none' ? 'block' : 'none';
+}
+
+// ===== 工具 =====
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function showToast(msg){
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2300);
+}
+
+// ===== 自动标记完成的板块 =====
+document.addEventListener('input', function(e){
+  const el = e.target;
+  if(!el.id || !el.id.startsWith('field-')) return;
+  const key = el.id.replace('field-','');
+  // Find which section this field belongs to
+  for(const sec of SECTIONS){
+    if(sec.fields && sec.fields.some(f=>f.key===key)){
+      if(el.value.trim()) markCompleted(sec.id);
+      break;
+    }
+  }
+});
+
+// ===== 启动 =====
+initSurvey();
+</script>
+</body>
+</html>
