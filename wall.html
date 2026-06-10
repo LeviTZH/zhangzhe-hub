@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>留言墙 - 张哲的世界</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+.wall-header { text-align:center; margin-bottom:24px; }
+.wall-header .wall-icon { font-size:48px; display:block; margin-bottom:12px; }
+.note-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+.note { padding:20px; border-radius:var(--radius-sm); font-size:14px; line-height:1.6; position:relative; min-height:100px; word-break:break-word; }
+.note .note-text { margin-bottom:8px; }
+.note .note-time { font-size:11px; opacity:0.6; }
+.note .note-delete { position:absolute; top:8px; right:10px; background:none; border:none; cursor:pointer; font-size:14px; opacity:0.4; color:inherit; }
+.note .note-delete:hover { opacity:1; }
+.note-form { display:flex; gap:8px; max-width:500px; margin:0 auto; }
+.note-colors { display:flex; gap:6px; justify-content:center; margin-bottom:12px; }
+.note-color { width:24px; height:24px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.2s; }
+.note-color.selected { border-color:var(--text); transform:scale(1.2); }
+.admin-check { text-align:center; margin-bottom:16px; }
+.empty-wall { text-align:center; padding:40px; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="nav" id="siteNav"></div>
+<div class="container" style="max-width:720px;">
+  <div class="wall-header">
+    <span class="wall-icon">💬</span>
+    <h1 class="title">给张哲留言</h1>
+    <p class="subtitle">写下你想对张哲说的话，匿名留言，彩色便签飘落</p>
+  </div>
+
+  <div class="admin-check" id="adminBar" style="display:none;">
+    <button class="btn btn-outline btn-sm" id="adminToggle" onclick="toggleAdmin()">🔑 管理模式</button>
+  </div>
+
+  <div class="note-colors" id="colorPicker">
+    <div class="note-color selected" style="background:#fce4e8;" onclick="selectColor(0)"></div>
+    <div class="note-color" style="background:#e8f6f3;" onclick="selectColor(1)"></div>
+    <div class="note-color" style="background:#edf4fd;" onclick="selectColor(2)"></div>
+    <div class="note-color" style="background:#fdf3e0;" onclick="selectColor(3)"></div>
+    <div class="note-color" style="background:#f0eaf7;" onclick="selectColor(4)"></div>
+  </div>
+
+  <div class="note-form">
+    <input class="input" id="msgInput" placeholder="写下你想说的话..." maxlength="200" onkeydown="if(event.key==='Enter')addNote()">
+    <button class="btn btn-primary" onclick="addNote()">💌 发送</button>
+  </div>
+
+  <div class="note-grid mt-24" id="noteGrid"></div>
+
+  <div class="text-center mt-24">
+    <button class="btn btn-outline btn-sm" id="adminBtn" onclick="promptAdmin()">🔑 管理入口</button>
+  </div>
+</div>
+<script src="js/common.js"></script>
+<script>
+const WALL_KEY = 'zz_wall_msgs';
+const ADMIN_PASS = 'zhangzhe2026';
+const noteBgs = ['#fce4e8','#e8f6f3','#edf4fd','#fdf3e0','#f0eaf7'];
+let selectedColor = 0;
+let isAdmin = false;
+
+function init(){
+  initNav('wall.html');
+  renderNotes();
+  // auto admin if local storage flag
+  isAdmin = sessionStorage.getItem('zz_admin')==='true';
+  updateAdminUI();
+}
+
+function getNotes(){
+  try{ return JSON.parse(localStorage.getItem(WALL_KEY)||'[]'); }
+  catch(e){ return []; }
+}
+
+function saveNotes(notes){
+  localStorage.setItem(WALL_KEY, JSON.stringify(notes));
+}
+
+function selectColor(i){
+  selectedColor = i;
+  document.querySelectorAll('.note-color').forEach((el,idx)=>{ el.classList.toggle('selected',idx===i); });
+}
+
+function addNote(){
+  const inp = document.getElementById('msgInput');
+  const text = inp.value.trim();
+  if(!text) return;
+  const notes = getNotes();
+  notes.unshift({ text, color:selectedColor, time:Date.now() });
+  if(notes.length>100) notes.length = 100;
+  saveNotes(notes);
+  inp.value = '';
+  renderNotes();
+  showToast('留言已发送！');
+}
+
+function deleteNote(index){
+  if(!isAdmin) return;
+  const notes = getNotes();
+  notes.splice(index,1);
+  saveNotes(notes);
+  renderNotes();
+  showToast('留言已删除');
+}
+
+function renderNotes(){
+  const notes = getNotes();
+  const grid = document.getElementById('noteGrid');
+  if(!notes.length){
+    grid.innerHTML = '<div class="empty-wall">还没有留言，来做第一个留言的人吧 🎈</div>';
+    return;
+  }
+  grid.innerHTML = notes.map((n,i)=>`
+    <div class="note" style="background:${noteBgs[n.color||0]};transform:rotate(${(i%3-1)*2}deg);">
+      ${isAdmin?`<button class="note-delete" onclick="deleteNote(${i})">×</button>`:''}
+      <div class="note-text">${escNote(n.text)}</div>
+      <div class="note-time">${timeAgo(n.time)}</div>
+    </div>
+  `).join('');
+}
+
+function escNote(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function timeAgo(ts){
+  const sec = Math.floor((Date.now()-ts)/1000);
+  if(sec<60) return '刚刚';
+  if(sec<3600) return Math.floor(sec/60)+'分钟前';
+  if(sec<86400) return Math.floor(sec/3600)+'小时前';
+  return Math.floor(sec/86400)+'天前';
+}
+
+function promptAdmin(){
+  const pwd = prompt('请输入管理密码：');
+  if(pwd===ADMIN_PASS){
+    isAdmin = true;
+    sessionStorage.setItem('zz_admin','true');
+    showToast('管理员模式已开启');
+    updateAdminUI();
+    renderNotes();
+  } else if(pwd){
+    showToast('密码错误');
+  }
+}
+
+function toggleAdmin(){
+  isAdmin = false;
+  sessionStorage.removeItem('zz_admin');
+  updateAdminUI();
+  renderNotes();
+  showToast('已退出管理模式');
+}
+
+function updateAdminUI(){
+  document.getElementById('adminBar').style.display = isAdmin?'block':'none';
+  document.getElementById('adminToggle').style.display = isAdmin?'inline-flex':'none';
+  document.getElementById('adminBtn').style.display = isAdmin?'none':'inline-flex';
+  document.getElementById('noteGrid').classList.toggle('admin-mode', isAdmin);
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>张哲电台 - 张哲的世界</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+.radio-body { max-width:560px; margin:0 auto; }
+.radio-player { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:32px 24px; text-align:center; margin-bottom:24px; }
+.radio-display { width:180px; height:180px; border-radius:50%; border:3px solid var(--rose); margin:0 auto 20px; display:flex; align-items:center; justify-content:center; font-size:48px; background:var(--bg); position:relative; overflow:hidden; }
+.radio-display.playing { animation:spin 3s linear infinite; }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.radio-display .center-dot { position:absolute; width:40px; height:40px; border-radius:50%; background:var(--rose); }
+.now-playing { font-size:15px; font-weight:500; margin-bottom:4px; }
+.now-artist { font-size:13px; color:var(--text-muted); }
+.visualizer { display:flex; align-items:flex-end; gap:3px; height:80px; justify-content:center; margin:20px 0; }
+.visualizer .bar { width:6px; border-radius:3px; background:var(--rose); transition:height 0.1s; }
+.player-controls { display:flex; gap:12px; justify-content:center; align-items:center; margin-top:16px; }
+.ctrl-btn { width:44px; height:44px; border-radius:50%; border:0.5px solid var(--border); background:var(--surface); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.ctrl-btn:hover { border-color:var(--rose); background:var(--rose-light); }
+.ctrl-btn.play-btn { width:56px; height:56px; background:var(--rose); border-color:var(--rose); color:#fff; font-size:22px; }
+.ctrl-btn.play-btn:hover { background:var(--rose-dark); }
+.playlist { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.playlist-item { padding:14px 20px; display:flex; align-items:center; gap:12px; cursor:pointer; border-bottom:0.5px solid var(--border-light); transition:background 0.2s; }
+.playlist-item:last-child { border-bottom:none; }
+.playlist-item:hover { background:var(--rose-light); }
+.playlist-item.active { background:var(--rose-light); }
+.playlist-item .pl-num { width:24px; font-size:13px; color:var(--text-hint); text-align:center; }
+.playlist-item.active .pl-num { color:var(--rose); font-weight:600; }
+.playlist-item .pl-info { flex:1; }
+.playlist-item .pl-title { font-size:14px; font-weight:500; }
+.playlist-item .pl-artist { font-size:12px; color:var(--text-muted); }
+.playlist-item .pl-dur { font-size:12px; color:var(--text-hint); }
+/* Hide playlist items beyond 5 without JS filtering */
+</style>
+</head>
+<body>
+<div class="nav" id="siteNav"></div>
+<div class="container">
+  <div class="radio-body">
+    <div class="radio-player">
+      <h1 class="title" style="margin-bottom:20px;">🎵 张哲电台</h1>
+      <div class="radio-display" id="radioDisplay">
+        <div class="center-dot"></div>
+      </div>
+      <div class="now-playing" id="nowPlaying">选择一首歌</div>
+      <div class="now-artist" id="nowArtist"></div>
+      <div class="visualizer" id="visualizer">
+        ${Array.from({length:32},()=>'<div class="bar" style="height:6px;"></div>').join('')}
+      </div>
+      <div class="player-controls">
+        <button class="ctrl-btn" onclick="prevTrack()" title="上一首">⏮</button>
+        <button class="ctrl-btn play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="ctrl-btn" onclick="nextTrack()" title="下一首">⏭</button>
+      </div>
+      <div class="mt-16">
+        <button class="btn btn-outline btn-sm" id="muteBtn" onclick="toggleMute()">🔊 静音</button>
+      </div>
+    </div>
+
+    <div class="playlist" id="playlist"></div>
+  </div>
+</div>
+<script src="js/common.js"></script>
+<script>
+const zz = zzLoad();
+let audioCtx = null;
+let currentTrack = -1;
+let isPlaying = false;
+let isMuted = false;
+let visInterval = null;
+let currentOsc = null;
+let currentGain = null;
+
+const playlist = [
+  { title:'晴天', artist:'周杰伦', freq:440, bpm:90 },
+  { title:'起风了', artist:'买辣椒也用券', freq:392, bpm:84 },
+  { title:'夜曲', artist:'周杰伦', freq:370, bpm:82 },
+  { title:'稻香', artist:'周杰伦', freq:415, bpm:80 },
+  { title:'光年之外', artist:'邓紫棋', freq:466, bpm:88 },
+  { title:'年少有为', artist:'李荣浩', freq:349, bpm:78 },
+  { title:'告白气球', artist:'周杰伦', freq:392, bpm:92 },
+  { title:'小幸运', artist:'田馥甄', freq:440, bpm:80 }
+];
+
+function init(){
+  initNav('radio.html');
+  renderPlaylist();
+}
+
+function renderPlaylist(){
+  document.getElementById('playlist').innerHTML = playlist.map((t,i)=>`
+    <div class="playlist-item${i===currentTrack?' active':''}" onclick="selectTrack(${i})">
+      <div class="pl-num">${i+1}</div>
+      <div class="pl-info"><div class="pl-title">${t.title}</div><div class="pl-artist">${t.artist} · BPM ${t.bpm}</div></div>
+      <div class="pl-dur">${isPlaying&&i===currentTrack?'▶':' '}</div>
+    </div>
+  `).join('');
+}
+
+function selectTrack(i){
+  stopAudio();
+  currentTrack = i;
+  renderPlaylist();
+  updateNowPlaying();
+  if(isPlaying) startAudio();
+}
+
+function updateNowPlaying(){
+  if(currentTrack>=0){
+    document.getElementById('nowPlaying').textContent = playlist[currentTrack].title;
+    document.getElementById('nowArtist').textContent = playlist[currentTrack].artist;
+  } else {
+    document.getElementById('nowPlaying').textContent = '选择一首歌';
+    document.getElementById('nowArtist').textContent = '';
+  }
+}
+
+function togglePlay(){
+  if(currentTrack<0){ selectTrack(0); startAudio(); isPlaying=true; }
+  else if(isPlaying){ stopAudio(); isPlaying=false; }
+  else { startAudio(); isPlaying=true; }
+  updatePlayBtn();
+  updateDisplay();
+}
+
+function updatePlayBtn(){
+  document.getElementById('playBtn').textContent = isPlaying?'⏸':'▶';
+}
+
+function updateDisplay(){
+  const d = document.getElementById('radioDisplay');
+  if(isPlaying) d.classList.add('playing'); else d.classList.remove('playing');
+}
+
+let melodyTimeout = null;
+
+function startAudio(){
+  try {
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx.state==='suspended') audioCtx.resume();
+
+    currentGain = audioCtx.createGain();
+    currentGain.gain.value = isMuted ? 0 : 0.08;
+    currentGain.connect(audioCtx.destination);
+
+    const track = playlist[currentTrack];
+    playMelody(track.freq, track.bpm);
+    startVisualizer();
+    document.getElementById('radioDisplay').style.background = 'var(--rose-light)';
+  } catch(e){ console.log('Audio start failed',e); }
+}
+
+function playMelody(baseFreq, bpm){
+  const beatMs = 60000 / bpm;
+  const notes = [1, 1.125, 1.25, 1.125, 1, 0.875, 0.75, 1, 0.75, 1.125, 1, 0.875, 1];
+  let step = 0;
+
+  function playNote(){
+    if(!isPlaying || !audioCtx || !currentGain) return;
+    if(currentOsc){ try{currentOsc.stop()}catch(e){} }
+
+    currentOsc = audioCtx.createOscillator();
+    currentOsc.type = step%4===0?'sine':'triangle';
+    const env = audioCtx.createGain();
+    env.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+beatMs/1000*0.8);
+    currentOsc.frequency.value = baseFreq * notes[step % notes.length];
+    currentOsc.connect(env);
+    env.connect(currentGain);
+    currentOsc.start(audioCtx.currentTime);
+    currentOsc.stop(audioCtx.currentTime + beatMs/1000*0.7);
+
+    step++;
+    melodyTimeout = setTimeout(playNote, beatMs);
+  }
+  playNote();
+}
+
+function stopAudio(){
+  if(melodyTimeout){ clearTimeout(melodyTimeout); melodyTimeout=null; }
+  if(currentOsc){ try{currentOsc.stop()}catch(e){} currentOsc=null; }
+  if(currentGain){ try{currentGain.disconnect()}catch(e){} currentGain=null; }
+  stopVisualizer();
+  document.getElementById('radioDisplay').style.background = 'var(--bg)';
+}
+
+function toggleMute(){
+  isMuted = !isMuted;
+  document.getElementById('muteBtn').textContent = isMuted?'🔇 取消静音':'🔊 静音';
+  if(currentGain) currentGain.gain.value = isMuted ? 0 : 0.08;
+}
+
+function startVisualizer(){
+  const bars = document.querySelectorAll('.visualizer .bar');
+  visInterval = setInterval(()=>{
+    bars.forEach(b=>{
+      b.style.height = (4+Math.random()*76)+'px';
+    });
+  },80);
+}
+
+function stopVisualizer(){
+  if(visInterval){ clearInterval(visInterval); visInterval=null; }
+  document.querySelectorAll('.visualizer .bar').forEach(b=>b.style.height='6px');
+}
+
+function prevTrack(){
+  if(currentTrack<0) return;
+  stopAudio();
+  currentTrack = currentTrack>0 ? currentTrack-1 : playlist.length-1;
+  renderPlaylist();
+  updateNowPlaying();
+  if(isPlaying) startAudio();
+}
+
+function nextTrack(){
+  stopAudio();
+  currentTrack = currentTrack>=0 ? (currentTrack+1)%playlist.length : 0;
+  renderPlaylist();
+  updateNowPlaying();
+  if(isPlaying) startAudio();
+}
+
+init();
+</script>
+</body>
+</html>

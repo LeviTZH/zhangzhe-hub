@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>爱情测试 - 张哲的世界</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+.test-card { max-width:460px; margin:0 auto; }
+.test-card .inner { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:32px 24px; text-align:center; }
+.test-card .step-title { font-size:20px; font-weight:600; margin-bottom:8px; }
+.test-card .step-desc { font-size:13px; color:var(--text-muted); margin-bottom:24px; }
+.test-card .question { font-size:18px; font-weight:600; margin-bottom:20px; }
+.progress { height:6px; background:var(--border-light); border-radius:3px; margin-bottom:24px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--rose); border-radius:3px; transition:width 0.4s; }
+.answer-btn { display:block; width:100%; padding:14px; margin-bottom:10px; border:0.5px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); font-size:15px; cursor:pointer; transition:all 0.2s; font-family:var(--font); color:var(--text); text-align:center; }
+.answer-btn:hover { border-color:var(--rose); background:var(--rose-light); }
+.result-emoji { font-size:64px; margin-bottom:16px; display:block; }
+.result-text { font-size:24px; font-weight:700; margin-bottom:8px; }
+.result-score { font-size:14px; color:var(--text-muted); margin-bottom:24px; }
+.result-bar { height:12px; background:var(--border-light); border-radius:6px; overflow:hidden; margin-bottom:8px; }
+.result-bar-fill { height:100%; border-radius:6px; transition:width 0.8s ease-out; }
+canvas { display:block; margin:20px auto; }
+.confetti-container { position:fixed; inset:0; pointer-events:none; z-index:300; }
+.confetti { position:absolute; width:10px; height:10px; border-radius:2px; animation:confetti-fall linear forwards; }
+@keyframes confetti-fall { 0%{transform:translateY(-100px) rotate(0deg);opacity:1} 100%{transform:translateY(100vh) rotate(720deg);opacity:0} }
+.love-letter { background:var(--pink-light); border-radius:var(--radius); padding:20px; margin-top:20px; text-align:left; line-height:1.8; font-size:14px; }
+.love-letter .letter-title { font-weight:600; font-size:15px; margin-bottom:8px; color:var(--rose); }
+</style>
+</head>
+<body>
+<div class="nav" id="siteNav"></div>
+
+<div class="container">
+  <div class="test-card">
+    <div class="inner" id="screen"></div>
+  </div>
+</div>
+
+<script src="js/common.js"></script>
+<script>
+const zz = zzLoad();
+let state = { step:'name', name:'', answers:[], mode:'single' };
+
+const questions = [
+  { q:`${zz.name}喜欢暗区突围，你喜欢吗？`, like:'喜欢！我也玩', dislike:'不玩...', weight:1.5 },
+  { q:`${zz.name}无辣不欢，你能吃辣吗？`, like:'当然能！', dislike:'不太行...', weight:1.2 },
+  { q:`${zz.name}经常熬夜，你也是夜猫子吗？`, like:'熬夜冠军', dislike:'我养生', weight:1.0 },
+  { q:`${zz.name}是个游戏高手，你打游戏厉害吗？`, like:'带飞全场', dislike:'人机水平', weight:1.3 },
+  { q:`你觉得${zz.name}帅吗？`, like:'超级帅！', dislike:'一般般', weight:2.0 }
+];
+
+function init(){
+  initNav('love-test.html');
+  renderStep();
+}
+
+function renderStep(){
+  const s = document.getElementById('screen');
+  if(state.step==='name'){
+    s.innerHTML = `
+      <div class="step-title">💕 张哲爱情测试</div>
+      <div class="step-desc">回答几个问题，看看你和张哲的缘分</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:20px;">
+        <button class="btn ${state.mode==='single'?'btn-primary':'btn-outline'} btn-sm" onclick="state.mode='single';renderStep()">👤 单人模式</button>
+        <button class="btn ${state.mode==='couple'?'btn-primary':'btn-outline'} btn-sm" onclick="state.mode='couple';renderStep()">💑 情侣模式</button>
+      </div>
+      <input class="input" id="nameInput" placeholder="输入你的名字" style="text-align:center;font-size:18px;" value="${state.name}" onkeydown="if(event.key==='Enter')startTest()">
+      <button class="btn btn-primary btn-block mt-16" onclick="startTest()">开始测试</button>
+    `;
+  } else if(state.step==='quiz'){
+    const i = state.currentQ;
+    const q = questions[i];
+    s.innerHTML = `
+      <div class="progress"><div class="progress-fill" style="width:${(i/questions.length)*100}%"></div></div>
+      <div class="question">${q.q}</div>
+      <button class="answer-btn" onclick="answer(true)">✅ ${q.like}</button>
+      <button class="answer-btn" onclick="answer(false)">❌ ${q.dislike}</button>
+    `;
+  } else if(state.step==='result'){
+    const score = calcScore(state.answers);
+    const pct = Math.round(score);
+    const love = score >= 50;
+    s.innerHTML = `
+      <span class="result-emoji">${love?'💖':'💔'}</span>
+      <div class="result-text">${zz.name}${love?'爱你':'不爱你'}，${state.name}！</div>
+      <div class="result-score">缘分指数</div>
+      <div class="result-bar"><div class="result-bar-fill" style="width:0%;background:${love?'var(--rose)':'var(--teal)'}" id="resultBar"></div></div>
+      <div style="font-size:28px;font-weight:700;color:${love?'var(--rose)':'var(--teal)'};margin:8px 0;" id="resultPct">0%</div>
+      <canvas id="radarCanvas" width="280" height="280"></canvas>
+      <button class="btn btn-outline btn-sm mt-8" onclick="generateLetter()">💌 生成情书</button>
+      <div id="letterBox"></div>
+      <button class="btn btn-outline btn-sm mt-8" onclick="savePoster()">🖼 保存海报</button>
+      <button class="btn btn-outline btn-sm mt-8" onclick="state.step='name';state.answers=[];renderStep()">🔄 再测一次</button>
+    `;
+    setTimeout(()=>{
+      document.getElementById('resultBar').style.width = pct+'%';
+      animateNum('resultPct', 0, pct, 800);
+    },100);
+    if(love) spawnConfetti();
+    drawRadar();
+  }
+}
+
+function startTest(){
+  const inp = document.getElementById('nameInput');
+  state.name = (inp.value||'').trim() || '神秘人';
+  state.currentQ = 0;
+  state.answers = [];
+  state.step = 'quiz';
+  renderStep();
+}
+
+function answer(yes){
+  state.answers.push({q:state.currentQ, yes});
+  state.currentQ++;
+  if(state.currentQ >= questions.length){
+    state.step = 'result';
+  }
+  renderStep();
+}
+
+function calcScore(answers){
+  let total = 0, max = 0;
+  answers.forEach(a=>{
+    total += a.yes ? questions[a.q].weight : 0;
+    max += questions[a.q].weight;
+  });
+  return max>0 ? (total/max)*100 : 0;
+}
+
+function animateNum(id,from,to,dur){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const start = Date.now();
+  function tick(){
+    const p = Math.min((Date.now()-start)/dur,1);
+    el.textContent = Math.round(from+(to-from)*p)+'%';
+    if(p<1) requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function spawnConfetti(){
+  const colors = ['#e8536c','#f098a7','#d4a843','#fdf3e0','#7b5ea7','#4a8fe7','#3d9e8b','#ff6b8a'];
+  const c = document.createElement('div');
+  c.className='confetti-container';
+  for(let i=0;i<80;i++){
+    const p = document.createElement('div');
+    p.className='confetti';
+    p.style.left = Math.random()*100+'%';
+    p.style.background = colors[Math.floor(Math.random()*colors.length)];
+    p.style.animationDuration = (1.5+Math.random()*2)+'s';
+    p.style.animationDelay = Math.random()*0.5+'s';
+    p.style.width = (6+Math.random()*8)+'px';
+    p.style.height = (6+Math.random()*8)+'px';
+    c.appendChild(p);
+  }
+  document.body.appendChild(c);
+  setTimeout(()=>c.remove(),3000);
+}
+
+function drawRadar(){
+  const canvas = document.getElementById('radarCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx=140,cy=140,r=100;
+  const labels = ['游戏','美食','作息','默契','颜值'];
+  const vals = state.answers.map((a,i)=> a.yes ? 90 : 20+Math.random()*30);
+  ctx.clearRect(0,0,280,280);
+
+  // grid
+  for(let j=1;j<=5;j++){
+    ctx.beginPath();
+    for(let i=0;i<5;i++){
+      const ang = -Math.PI/2 + (2*Math.PI/5)*i;
+      const x = cx + Math.cos(ang)*r*(j/5);
+      const y = cy + Math.sin(ang)*r*(j/5);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = j===5 ? 'var(--border)' : 'var(--border-light)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+  }
+
+  // axes
+  for(let i=0;i<5;i++){
+    const ang = -Math.PI/2 + (2*Math.PI/5)*i;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(ang)*r, cy+Math.sin(ang)*r);
+    ctx.strokeStyle = 'var(--border-light)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    // label
+    const lx = cx+Math.cos(ang)*(r+24);
+    const ly = cy+Math.sin(ang)*(r+24);
+    ctx.fillStyle = 'var(--text-muted)';
+    ctx.font = '12px ' + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(labels[i], lx, ly);
+  }
+
+  // data
+  ctx.beginPath();
+  for(let i=0;i<5;i++){
+    const ang = -Math.PI/2 + (2*Math.PI/5)*i;
+    const vr = r*(vals[i]/100);
+    const x = cx+Math.cos(ang)*vr;
+    const y = cy+Math.sin(ang)*vr;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(232,83,108,0.15)';
+  ctx.fill();
+  ctx.strokeStyle = 'var(--rose)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // dots
+  for(let i=0;i<5;i++){
+    const ang = -Math.PI/2 + (2*Math.PI/5)*i;
+    const vr = r*(vals[i]/100);
+    ctx.beginPath();
+    ctx.arc(cx+Math.cos(ang)*vr, cy+Math.sin(ang)*vr, 4, 0, Math.PI*2);
+    ctx.fillStyle = 'var(--rose)';
+    ctx.fill();
+  }
+}
+
+function generateLetter(){
+  const score = Math.round(calcScore(state.answers));
+  const high = score >= 50;
+  const letter = high
+    ? `亲爱的${state.name}：\n\n遇见你是最美好的意外。每次和你在一起，时间都过得特别快。你就像${zz.nickname}生活里的一道光，温暖又明亮。\n\n${zz.name}说他很幸运能认识你，希望以后的日子里，能和你一起打游戏、一起吃辣、一起熬夜看星星。\n\n—— 来自${zz.name}的告白 💌`
+    : `嗨，${state.name}：\n\n虽然缘分指数不算高，但谁说友情不是最好的开始呢？\n\n${zz.name}是个很有趣的人——打游戏超厉害、吃辣无敌、熬夜冠军。做不成恋人，做游戏队友也很棒呀！\n\n下次一起开黑吧！🎮\n\n—— ${zz.name}的小纸条`;
+
+  document.getElementById('letterBox').innerHTML = `
+    <div class="love-letter">
+      <div class="letter-title">💌 ${high?'甜蜜告白':'趣味小纸条'}</div>
+      ${letter.replace(/\n/g,'<br>')}
+      <button class="btn btn-outline btn-sm mt-16" onclick="copyLetter(this)">📋 复制情书</button>
+    </div>`;
+}
+
+function copyLetter(btn){
+  const text = btn.parentElement.textContent.replace('📋 复制情书','').trim();
+  navigator.clipboard.writeText(text).then(()=>showToast('情书已复制！'));
+}
+
+function savePoster(){
+  const canvas = document.createElement('canvas');
+  canvas.width = 600; canvas.height = 800;
+  const ctx = canvas.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0,0,0,800);
+  grad.addColorStop(0,'#fef0f3'); grad.addColorStop(1,'#e8f6f3');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,600,800);
+
+  drawRoundedRectForCtx(ctx, 40, 40, 520, 720, 16);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+
+  ctx.fillStyle = '#3d2c33';
+  ctx.font = 'bold 32px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('张哲爱情测试', 300, 110);
+
+  const score = Math.round(calcScore(state.answers));
+  ctx.fillStyle = score>=50 ? '#e8536c' : '#3d9e8b';
+  ctx.font = 'bold 48px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(score+'%', 300, 200);
+
+  ctx.fillStyle = '#3d2c33';
+  ctx.font = '24px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText(`${zz.name}${score>=50?'爱':'不爱'} ${state.name}`, 300, 260);
+
+  ctx.fillStyle = '#8c7a80';
+  ctx.font = '14px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('扫码来测你的缘分', 300, 700);
+
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = `zhangzhe-love-${state.name}.png`;
+  a.click();
+  showToast('海报已保存！');
+}
+
+function drawRoundedRectForCtx(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+init();
+</script>
+</body>
+</html>

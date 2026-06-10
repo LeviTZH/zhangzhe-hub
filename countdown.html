@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>倒计时日历 - 张哲的世界</title>
+<link rel="stylesheet" href="css/common.css">
+<style>
+.countdown-hero { text-align:center; padding:32px 20px; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); margin-bottom:24px; }
+.countdown-hero .next-event { font-size:13px; color:var(--text-muted); margin-bottom:8px; }
+.countdown-hero .big-days { font-size:72px; font-weight:700; color:var(--rose); line-height:1; }
+.countdown-hero .event-label { font-size:18px; font-weight:600; margin-top:8px; }
+.countdown-hero .event-date { font-size:13px; color:var(--text-muted); margin-top:4px; }
+.timeline { position:relative; padding-left:32px; }
+.timeline::before { content:''; position:absolute; left:11px; top:8px; bottom:8px; width:2px; background:var(--border); }
+.timeline-item { position:relative; margin-bottom:20px; padding:14px 18px; background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius-sm); }
+.timeline-item::before { content:''; position:absolute; left:-26px; top:18px; width:12px; height:12px; border-radius:50%; background:var(--rose); border:2px solid var(--surface); }
+.timeline-item.past::before { background:var(--text-hint); }
+.timeline-item .ti-header { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.timeline-item .ti-emoji { font-size:20px; }
+.timeline-item .ti-label { font-weight:500; font-size:15px; }
+.timeline-item .ti-date { font-size:12px; color:var(--text-muted); }
+.timeline-item .ti-countdown { font-size:13px; color:var(--rose); font-weight:500; }
+.timeline-item.past .ti-countdown { color:var(--text-hint); }
+</style>
+</head>
+<body>
+<div class="nav" id="siteNav"></div>
+<div class="container">
+  <div class="countdown-hero" id="hero">
+    <div class="next-event">下一个纪念日</div>
+    <div class="big-days" id="bigDays">--</div>
+    <div class="event-label" id="eventLabel">加载中...</div>
+    <div class="event-date" id="eventDate"></div>
+  </div>
+
+  <h2 class="section-title">📅 所有纪念日</h2>
+  <div class="timeline" id="timeline"></div>
+
+  <div class="text-center mt-24">
+    <a href="editor.html" class="btn btn-outline">⚙ 在编辑器中管理纪念日</a>
+  </div>
+</div>
+<script src="js/common.js"></script>
+<script>
+function init(){
+  initNav('countdown.html');
+  const zz = zzLoad();
+  const memories = (zz.memories||[]).map(m=>({...m,days:daysUntil(m.date),dateObj:new Date(m.date+'T00:00:00')}));
+  memories.sort((a,b)=>a.dateObj-b.dateObj);
+
+  // Hero: next upcoming
+  const upcoming = memories.filter(m=>m.days>=0);
+  const next = upcoming[0];
+  if(next){
+    document.getElementById('bigDays').textContent = next.days===0?'今天':next.days;
+    document.getElementById('eventLabel').textContent = next.emoji+' '+next.label;
+    document.getElementById('eventDate').textContent = formatDate(next.date);
+  } else {
+    document.getElementById('bigDays').textContent = '∞';
+    document.getElementById('eventLabel').textContent = '暂无纪念日';
+  }
+
+  // Timeline (all, past greyed out)
+  document.getElementById('timeline').innerHTML = memories.map(m=>{
+    const isPast = m.days < 0;
+    return `<div class="timeline-item${isPast?' past':''}">
+      <div class="ti-header">
+        <span class="ti-emoji">${m.emoji||'📌'}</span>
+        <span class="ti-label">${m.label}</span>
+      </div>
+      <div class="ti-date">${formatDate(m.date)}</div>
+      <div class="ti-countdown">${isPast?'已过去 '+(Math.abs(m.days))+' 天':m.days===0?'🎉 就是今天！':'还有 '+m.days+' 天'}</div>
+    </div>`;
+  }).join('');
+
+  // Birthday countdown
+  const bday = zz.birthday;
+  if(bday){
+    const bdays = daysUntil(bday);
+    const actualDays = bdays < 0 ? daysUntil((new Date().getFullYear()+1)+'-'+(bday.split('-').slice(1).join('-'))) : bdays;
+    document.getElementById('timeline').innerHTML += `
+      <div class="timeline-item">
+        <div class="ti-header"><span class="ti-emoji">🎂</span><span class="ti-label">${zz.name}的生日</span></div>
+        <div class="ti-date">${formatDate(bday)}</div>
+        <div class="ti-countdown">还有 ${actualDays} 天</div>
+      </div>`;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
