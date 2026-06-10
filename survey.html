@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>关于张哲的一切 · 信息收集问卷</title>
+<title>张哲自述问卷 · 关于你的一切</title>
 <style>
 /* ===== 变量 ===== */
 :root {
@@ -171,8 +171,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); line-he
 
 <!-- ===== 头部 ===== -->
 <div class="header">
-  <h1>📋 关于张哲的一切</h1>
-  <p>这是一份超级详细的调查问卷，旨在收集关于张哲的全部信息。<br>请尽量详细填写你知道的内容，每一条都可能出现在网站上！</p>
+  <h1>📋 关于你的一切</h1>
+  <p>张哲，这是一份你的自述问卷。<br>请如实填写，每一条都可能出现在你的专属网站上！</p>
 </div>
 
 <!-- ===== 进度条 ===== -->
@@ -196,17 +196,17 @@ const SECTIONS = [
   {
     id:'basic', icon:'👤', title:'基本信息', hint:'必填',
     fields:[
-      { key:'name', label:'姓名', hint:'张哲的真名', required:true, type:'text', placeholder:'例如：张哲' },
-      { key:'nickname', label:'昵称/外号', hint:'平时怎么称呼他？', type:'text', placeholder:'例如：哲哲、阿哲' },
-      { key:'birthday', label:'生日', hint:'公历生日', type:'date' },
-      { key:'zodiac', label:'星座', type:'select', options:['','白羊座','金牛座','双子座','巨蟹座','狮子座','处女座','天秤座','天蝎座','射手座','摩羯座','水瓶座','双鱼座'] },
-      { key:'mbti', label:'MBTI 人格', hint:'如果知道的话', type:'select', options:['','INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'] },
-      { key:'height', label:'身高 (cm)', type:'number', placeholder:'例如：178' },
-      { key:'hometown', label:'家乡', type:'text', placeholder:'例如：湖南长沙' },
-      { key:'city', label:'现居城市', type:'text', placeholder:'例如：北京' },
-      { key:'school_job', label:'学校 / 职业', type:'text', placeholder:'例如：XX大学计算机系' },
-      { key:'bio', label:'一句话/一段话描述张哲', hint:'这个会显示在网站首页', type:'textarea', placeholder:'他是什么样的一个人？有什么特点？最让人印象深刻的是什么？' },
-      { key:'emoji_list', label:'最能代表张哲的 Emoji（选3个）', hint:'会用于头像、装饰等', type:'text', placeholder:'例如：🦊 🎮 🌶' }
+      { key:'name', label:'你的姓名', hint:'你的真名', required:true, type:'text', placeholder:'例如：张哲' },
+      { key:'nickname', label:'你的昵称/外号', hint:'别人平时怎么称呼你？', type:'text', placeholder:'例如：哲哲、阿哲' },
+      { key:'birthday', label:'你的生日', hint:'你的公历生日', type:'date' },
+      { key:'zodiac', label:'你的星座', type:'select', options:['','白羊座','金牛座','双子座','巨蟹座','狮子座','处女座','天秤座','天蝎座','射手座','摩羯座','水瓶座','双鱼座'] },
+      { key:'mbti', label:'你的 MBTI 人格', hint:'如果知道的话', type:'select', options:['','INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'] },
+      { key:'height', label:'你的身高 (cm)', type:'number', placeholder:'例如：178' },
+      { key:'hometown', label:'你的家乡', type:'text', placeholder:'例如：湖南长沙' },
+      { key:'city', label:'你的现居城市', type:'text', placeholder:'例如：北京' },
+      { key:'school_job', label:'你的学校 / 职业', type:'text', placeholder:'例如：XX大学计算机系' },
+      { key:'bio', label:'用一句话描述你自己', hint:'这个会显示在网站首页', type:'textarea', placeholder:'你是什么样的一个人？有什么特点？最让人印象深刻的是什么？' },
+      { key:'emoji_list', label:'最能代表你的 Emoji（选3个）', hint:'会用于头像、装饰等', type:'text', placeholder:'例如：🦊 🎮 🌶' }
     ]
   },
   {
@@ -219,21 +219,21 @@ const SECTIONS = [
       { key:'skin_tone', label:'肤色', type:'select', options:['','偏白','自然','偏深','小麦色'] },
       { key:'glasses', label:'戴眼镜吗？', type:'select', options:['','不戴','近视眼镜','偶尔戴','墨镜爱好者'] },
       { key:'dimples', label:'有酒窝吗？', type:'select', options:['','有','没有','只有一个'] },
-      { key:'style', label:'日常穿衣风格', type:'text', placeholder:'例如：休闲风、运动风、日系、街头...' },
-      { key:'feature_note', label:'最有辨识度的外貌特征', type:'textarea', placeholder:'例如：浓眉、高鼻梁、笑起来眼睛眯成一条缝...' }
+      { key:'style', label:'你的日常穿衣风格', type:'text', placeholder:'例如：休闲风、运动风、日系、街头...' },
+      { key:'feature_note', label:'你最有辨识度的外貌特征', type:'textarea', placeholder:'例如：浓眉、高鼻梁、笑起来眼睛眯成一条缝...' }
     ]
   },
   {
     id:'personality', icon:'🧠', title:'性格与习惯', hint:'越真实越好',
     fields:[
-      { key:'personality_tags', label:'性格关键词（多个用逗号分开）', type:'text', placeholder:'例如：幽默、内向、细心、拖延症、社恐' },
-      { key:'sleep_time', label:'一般几点睡？', type:'select', options:['','10点前','10-11点','11-12点','12-1点','凌晨1-2点','凌晨2-3点','通宵不睡'] },
-      { key:'wake_time', label:'一般几点起？', type:'select', options:['','6点前','6-7点','7-8点','8-9点','9-10点','10点以后','下午才起'] },
-      { key:'catchphrase', label:'口头禅', type:'text', placeholder:'例如：笑死、离谱、无所谓' },
-      { key:'strengths', label:'优点', type:'textarea', placeholder:'他最大的优点是什么？' },
-      { key:'weaknesses', label:'缺点 / 小毛病', type:'textarea', placeholder:'他有什么让人又爱又恨的小毛病？' },
-      { key:'pet_peeve', label:'最讨厌的事情', type:'textarea', placeholder:'什么事会让他炸毛？' },
-      { key:'hidden_talent', label:'不为人知的隐藏技能', type:'textarea', placeholder:'例如：会弹钢琴、做饭超好吃、模仿达人...' }
+      { key:'personality_tags', label:'你的性格关键词（多个用逗号分开）', type:'text', placeholder:'例如：幽默、内向、细心、拖延症、社恐' },
+      { key:'sleep_time', label:'你一般几点睡？', type:'select', options:['','10点前','10-11点','11-12点','12-1点','凌晨1-2点','凌晨2-3点','通宵不睡'] },
+      { key:'wake_time', label:'你一般几点起？', type:'select', options:['','6点前','6-7点','7-8点','8-9点','9-10点','10点以后','下午才起'] },
+      { key:'catchphrase', label:'你的口头禅', type:'text', placeholder:'例如：笑死、离谱、无所谓' },
+      { key:'strengths', label:'你最大的优点', type:'textarea', placeholder:'你最大的优点是什么？' },
+      { key:'weaknesses', label:'你的缺点 / 小毛病', type:'textarea', placeholder:'你有什么让人又爱又恨的小毛病？' },
+      { key:'pet_peeve', label:'你最讨厌的事情', type:'textarea', placeholder:'什么事会让你炸毛？' },
+      { key:'hidden_talent', label:'你不为人知的隐藏技能', type:'textarea', placeholder:'例如：会弹钢琴、做饭超好吃、模仿达人...' }
     ]
   },
   {
@@ -285,38 +285,38 @@ const SECTIONS = [
     id:'memories', icon:'📅', title:'重要日期 & 纪念日', hint:'每个日期都会出现在倒计时页面',
     type:'memories',
     defaultItems:[
-      { date:'', label:'张哲的生日', emoji:'🎂' },
-      { date:'', label:'第一次见面', emoji:'💫' },
+      { date:'', label:'你的生日', emoji:'🎂' },
+      { date:'', label:'一个重要的日子', emoji:'💫' },
       { date:'', label:'', emoji:'📌' }
     ]
   },
   {
-    id:'quiz', icon:'❓', title:'冷知识题库', hint:'出一些关于张哲的选择题，用来测试谁最了解他',
+    id:'quiz', icon:'❓', title:'冷知识题库', hint:'出一些关于你的选择题，用来测试谁最了解你',
     type:'quiz',
     defaultItems:[
-      { q:'张哲最喜欢的游戏是？', opts:['暗区突围','王者荣耀','原神','LOL'], ans:0 },
-      { q:'张哲能多能吃辣？', opts:['微辣','中辣','特辣','无敌辣'], ans:3 },
-      { q:'张哲一般几点睡？', opts:['10点','12点','凌晨2点','通宵'], ans:2 },
-      { q:'张哲最喜欢的颜色？', opts:['蓝色','红色','黑色','白色'], ans:1 },
-      { q:'张哲的爱好是？', opts:['看书','打游戏','跑步','做饭'], ans:1 }
+      { q:'你最喜欢的游戏是？', opts:['暗区突围','王者荣耀','原神','LOL'], ans:0 },
+      { q:'你能吃多辣？', opts:['微辣','中辣','特辣','无敌辣'], ans:3 },
+      { q:'你一般几点睡？', opts:['10点','12点','凌晨2点','通宵'], ans:2 },
+      { q:'你最喜欢的颜色？', opts:['蓝色','红色','黑色','白色'], ans:1 },
+      { q:'你的爱好是？', opts:['看书','打游戏','跑步','做饭'], ans:1 }
     ]
   },
   {
-    id:'adventure', icon:'🎮', title:'大冒险剧情', hint:'设计以张哲为主角的文字冒险游戏剧情',
+    id:'adventure', icon:'🎮', title:'大冒险剧情', hint:'设计以你自己为主角的文字冒险游戏剧情',
     type:'adventure',
     defaultItems:[
-      { id:'start', text:'又是一个平凡的下午，张哲在宿舍打游戏。突然手机响了...', choices:[
+      { id:'start', text:'又是一个平凡的下午，你在宿舍打游戏。突然手机响了...', choices:[
         { text:'接电话', next:'phone' }, { text:'继续打游戏', next:'game' }
       ]},
-      { id:'phone', text:'是朋友约他去吃火锅！张哲的肚子咕咕叫了起来...', choices:[
+      { id:'phone', text:'是朋友约你去吃火锅！你的肚子咕咕叫了起来...', choices:[
         { text:'立刻出发！', next:'hotpot_go' }, { text:'"等我打完这局"', next:'game' }
       ]},
       { id:'game', text:'游戏打得太投入，不知不觉天都黑了。肚子好饿...', choices:[
         { text:'点外卖', next:'order' }, { text:'出去觅食', next:'walk' }
       ]},
-      { id:'hotpot_go', text:'火锅店里热气腾腾，张哲吃得满头大汗，太爽了！', ending:'happy', emoji:'🍲' },
+      { id:'hotpot_go', text:'火锅店里热气腾腾，你吃得满头大汗，太爽了！', ending:'happy', emoji:'🍲' },
       { id:'order', text:'外卖到了，但是送错了——是隔壁的奶茶！意外的惊喜。', ending:'lucky', emoji:'🧋' },
-      { id:'walk', text:'出门遇到了一只超可爱的流浪猫，张哲蹲下来摸了半小时。', ending:'cozy', emoji:'🐱' }
+      { id:'walk', text:'出门遇到了一只超可爱的流浪猫，你蹲下来摸了半小时。', ending:'cozy', emoji:'🐱' }
     ]
   },
   {
@@ -333,12 +333,12 @@ const SECTIONS = [
   {
     id:'extra', icon:'💬', title:'补充信息', hint:'还有什么想说的？',
     fields:[
-      { key:'fun_fact', label:'关于张哲的趣事', type:'textarea', placeholder:'分享一件关于他的搞笑/温馨/离谱的事情' },
-      { key:'dream', label:'张哲的梦想/目标', type:'textarea', placeholder:'他有什么人生目标或小梦想？' },
-      { key:'first_impression', label:'你对张哲的第一印象', type:'textarea', placeholder:'第一次见到/认识他是什么感觉？' },
-      { key:'describe_3words', label:'用三个词形容张哲', type:'text', placeholder:'例如：幽默 靠谱 睡不醒' },
-      { key:'message', label:'想对张哲说的话', type:'textarea', placeholder:'在这里写一段话给张哲吧~' },
-      { key:'your_name', label:'你的名字（选填）', type:'text', placeholder:'你是谁？' }
+      { key:'fun_fact', label:'关于你的趣事', type:'textarea', placeholder:'分享一件关于你的搞笑/温馨/离谱的事情' },
+      { key:'dream', label:'你的梦想/目标', type:'textarea', placeholder:'你有什么人生目标或小梦想？' },
+      { key:'first_impression', label:'你最想让别人记住你的一件事', type:'textarea', placeholder:'你希望大家提起你时首先想到什么？' },
+      { key:'describe_3words', label:'用三个词形容你自己', type:'text', placeholder:'例如：幽默 靠谱 睡不醒' },
+      { key:'message', label:'想对自己说的话', type:'textarea', placeholder:'在这里写一段话给未来的自己吧~' },
+      { key:'your_name', label:'填表日期', type:'text', placeholder:'例如：2026年6月10日' }
     ]
   }
 ];
