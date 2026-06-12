@@ -32,7 +32,6 @@
 .playlist-item .pl-title { font-size:14px; font-weight:500; }
 .playlist-item .pl-artist { font-size:12px; color:var(--text-muted); }
 .playlist-item .pl-dur { font-size:12px; color:var(--text-hint); }
-/* Hide playlist items beyond 5 without JS filtering */
 </style>
 </head>
 <body>
@@ -47,7 +46,7 @@
       <div class="now-playing" id="nowPlaying">选择一首歌</div>
       <div class="now-artist" id="nowArtist"></div>
       <div class="visualizer" id="visualizer">
-        ${Array.from({length:32},()=>'<div class="bar" style="height:6px;"></div>').join('')}
+        <div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div><div class="bar" style="height:6px;"></div>
       </div>
       <audio id="audioPlayer" style="display:none;" onended="onTrackEnd()" onerror="onAudioError()"></audio>
       <div class="player-controls">
@@ -69,21 +68,23 @@
 
 <script>
 const zz = zzLoad();
-let audioCtx = null;
 let currentTrack = -1;
 let isPlaying = false;
 let visInterval = null;
 let isLoading = false;
 
+// All Eason Chan (陈奕迅) songs with real NetEase Cloud Music IDs
 const playlist = [
-  { title:'晴天', artist:'周杰伦', id:186016 },
+  { title:'富士山下', artist:'陈奕迅', id:65766 },
   { title:'好久不见', artist:'陈奕迅', id:65538 },
-  { title:'夜曲', artist:'周杰伦', id:186009 },
-  { title:'稻香', artist:'周杰伦', id:186031 },
-  { title:'光年之外', artist:'邓紫棋', id:460529 },
-  { title:'年少有为', artist:'李荣浩', id:1293886117 },
-  { title:'告白气球', artist:'周杰伦', id:418550088 },
-  { title:'富士山下', artist:'陈奕迅', id:65766 }
+  { title:'爱情转移', artist:'陈奕迅', id:65536 },
+  { title:'十年',     artist:'陈奕迅', id:66842 },
+  { title:'淘汰',     artist:'陈奕迅', id:65528 },
+  { title:'阴天快乐', artist:'陈奕迅', id:28563317 },
+  { title:'不要说话', artist:'陈奕迅', id:25906124 },
+  { title:'最佳损友', artist:'陈奕迅', id:65800 },
+  { title:'红玫瑰',   artist:'陈奕迅', id:368606 },
+  { title:'K歌之王',  artist:'陈奕迅', id:409941722 }
 ];
 
 function init(){
@@ -95,21 +96,19 @@ function renderPlaylist(){
   document.getElementById('playlist').innerHTML = playlist.map((t,i)=>`
     <div class="playlist-item${i===currentTrack?' active':''}" onclick="selectTrack(${i})">
       <div class="pl-num">${i+1}</div>
-      <div class="pl-info"><div class="pl-title">${t.title}</div><div class="pl-artist">${t.artist} · BPM ${t.bpm}</div></div>
+      <div class="pl-info"><div class="pl-title">${t.title}</div><div class="pl-artist">${t.artist}</div></div>
       <div class="pl-dur">${isPlaying&&i===currentTrack?'▶':' '}</div>
     </div>
   `).join('');
 }
 
-let isLoading = false;
-
 // meting API: 获取网易云真实播放链接
 async function getAudioUrl(songId){
   try {
-    const resp = await fetch(`https://api.i-meto.com/meting/api?server=netease&type=url&id=${songId}`);
+    const resp = await fetch(`https://api.i-meto.com/meting/api?server=netease&type=url&id=${songId}&br=128000`);
     const data = await resp.json();
     if(data && data.length && data[0].url) return data[0].url;
-    // 降级：iframe 嵌入
+    // Fallback to iframe embed
     return `https://music.163.com/outchain/player?type=2&id=${songId}&auto=0&height=66`;
   } catch(e){ return null; }
 }
@@ -133,9 +132,18 @@ function updateNowPlaying(){
 }
 
 async function togglePlay(){
-  if(currentTrack<0){ selectTrack(0); }
-  else if(isPlaying){ stopAudio(); isPlaying=false; }
-  else { isPlaying=true; }
+  if(currentTrack<0){
+    currentTrack = 0;
+    isPlaying = true;
+    renderPlaylist();
+    updateNowPlaying();
+    updatePlayBtn();
+    updateDisplay();
+    startAudio();
+    return;
+  }
+  if(isPlaying){ stopAudio(); isPlaying = false; }
+  else { isPlaying = true; }
   updatePlayBtn();
   updateDisplay();
   if(isPlaying) startAudio();
@@ -147,7 +155,8 @@ function updatePlayBtn(){
 
 function updateDisplay(){
   const d = document.getElementById('radioDisplay');
-  if(isPlaying) d.classList.add('playing'); else d.classList.remove('playing');
+  if(isPlaying) d.classList.add('playing');
+  else d.classList.remove('playing');
 }
 
 async function startAudio(){
@@ -155,17 +164,24 @@ async function startAudio(){
   const song = playlist[currentTrack];
   isLoading = true;
   document.getElementById('nowPlaying').textContent = '加载中...';
+  document.getElementById('nowArtist').textContent = '';
 
   const url = await getAudioUrl(song.id);
   isLoading = false;
 
-  if(!url){ stopAudio(); isPlaying=false; updatePlayBtn(); showToast('获取播放链接失败'); return; }
+  if(!url){
+    isPlaying = false;
+    updatePlayBtn();
+    updateDisplay();
+    showToast('获取播放链接失败，请稍后重试');
+    return;
+  }
 
   document.getElementById('nowPlaying').textContent = song.title;
   document.getElementById('nowArtist').textContent = song.artist;
 
   const audio = document.getElementById('audioPlayer');
-  // iframe 降级
+  // iframe fallback
   if(url.includes('music.163.com/outchain')){
     const iframe = document.createElement('iframe');
     iframe.src = url;
@@ -176,7 +192,19 @@ async function startAudio(){
     return;
   }
   audio.src = url;
-  audio.play().catch(e=>{ console.log('Play failed',e); stopAudio(); isPlaying=false; updatePlayBtn(); });
+  audio.play().catch(e=>{
+    console.log('播放被浏览器阻止，尝试 iframe 降级');
+    isPlaying = false;
+    updatePlayBtn();
+    updateDisplay();
+    // Try iframe fallback for browsers that block autoplay
+    const iframe = document.createElement('iframe');
+    iframe.src = `https://music.163.com/outchain/player?type=2&id=${song.id}&auto=1&height=120`;
+    iframe.style.cssText = 'width:100%;height:120px;border:none;margin-top:12px;';
+    document.querySelector('.radio-player').appendChild(iframe);
+    document.getElementById('radioDisplay').style.background = 'var(--rose-light)';
+    startVisualizer();
+  });
   document.getElementById('radioDisplay').style.background = 'var(--rose-light)';
   startVisualizer();
 }
@@ -192,7 +220,8 @@ function onAudioError(){
 
 function stopAudio(){
   const audio = document.getElementById('audioPlayer');
-  audio.pause(); audio.src = '';
+  audio.pause();
+  audio.src = '';
   stopVisualizer();
   document.getElementById('radioDisplay').style.background = 'var(--bg)';
   // 清除 iframe

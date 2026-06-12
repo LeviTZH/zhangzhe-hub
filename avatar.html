@@ -96,14 +96,23 @@
 <script src="js/data.js"></script>
 <script>
 const zz = zzLoad();
-const PROXY_BASE = 'http://127.0.0.1:8766';
+
+// Use location-relative proxy URL when on same host,
+// otherwise fall back to localhost (user runs music_server.py locally).
+// Deployed on GH Pages (levitzh.github.io) → localhost proxy is unreachable,
+// so we show a clear message instead of silent failure.
+const PROXY_BASE = (location.hostname === 'levitzh.github.io' || location.hostname.endsWith('.github.io'))
+  ? null   // cloud-deployed: no local proxy available
+  : 'http://127.0.0.1:8765';
 
 // ===== Tab Switching =====
 let currentTab = 'manual';
 function switchTab(tab){
   currentTab = tab;
-  document.querySelectorAll('.avatar-tab').forEach(t=>t.classList.toggle('active',false));
-  document.querySelectorAll('.avatar-tab').forEach(t=>{ if(t.textContent.includes(tab==='manual'?'手动':tab==='anime'?'动漫':'融合')) t.classList.add('active'); });
+  document.querySelectorAll('.avatar-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.avatar-tab').forEach(t=>{
+    if(t.textContent.includes(tab==='manual'?'手动':tab==='anime'?'动漫':'融合')) t.classList.add('active');
+  });
   ['tabManual','tabAnime','tabMerge'].forEach(id=>document.getElementById(id).classList.remove('active'));
   if(tab==='manual') document.getElementById('tabManual').style.display = 'grid';
   else document.getElementById('tabManual').style.display = 'none';
@@ -116,7 +125,7 @@ var selFace=0, selHair=0, selEyes=0, selMouth=0, selBrow=0, selGlasses=0, selSki
 
 const skinColors = ['#FCE4D6','#F8C9A8','#E8B88A','#D4A574','#C4956A','#F5D5C8'];
 const clothColors = ['#E8536C','#4A8FE7','#3D9E8B','#7B5EA7','#D4A843','#333333','#FFFFFF'];
-const hairColorList = ['#1a1a2e','#2c1810','#3d2b1f','#4a3728','#2c1810'];
+const hairColorList = ['#1a1a2e','#2c1810','#3d2b1f','#4a3728','#5c3a2a'];
 
 // Face shapes
 const faceShapes = [
@@ -166,7 +175,7 @@ function drawFaceHeart(c){ c.beginPath(); c.moveTo(C,C+72); c.bezierCurveTo(C-85
 function drawFacePointed(c){ c.beginPath(); c.moveTo(C,C-62); c.bezierCurveTo(C-70,C-30,C-65,C+50,C,C+72); c.bezierCurveTo(C+65,C+50,C+70,C-30,C,C-62); c.fill(); }
 function drawFaceOval(c){ c.beginPath(); c.ellipse(C,C+2,58,72,0,0,Math.PI*2); c.fill(); }
 
-// Hair drawing functions
+// Hair drawing functions (proper closed paths with quadraticCurveTo)
 function drawHairShort(){
   ctx.fillStyle = hairColorList[selHair%hairColorList.length];
   ctx.beginPath();
@@ -227,12 +236,12 @@ function drawHairCurly(){
 }
 
 // Eye drawing
+function drawEyeBase(){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(C-25, C-6, 14, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(C+25, C-6, 14, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#2c1810'; }
+function drawEyeHighlights(){ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(C-22,C-10,3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(C+28,C-10,3,0,Math.PI*2);ctx.fill(); }
 function drawEyesRound(){ drawEyeBase(); ctx.beginPath(); ctx.arc(C-25, C-8, 8, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(C+25, C-8, 8, 0, Math.PI*2); ctx.fill(); drawEyeHighlights(); }
 function drawEyesSmile(){ drawEyeBase(); ctx.beginPath(); ctx.arc(C-25, C-8, 10, 0.3*Math.PI, Math.PI*0.7); ctx.lineWidth=2.5; ctx.stroke(); ctx.beginPath(); ctx.arc(C+25, C-8, 10, 0.3*Math.PI, Math.PI*0.7); ctx.stroke(); ctx.lineWidth=1; }
 function drawEyesBig(){ drawEyeBase(); ctx.beginPath(); ctx.arc(C-25, C-6, 9, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(C+25, C-6, 9, 0, Math.PI*2); ctx.fill(); drawEyeHighlights(); ctx.strokeStyle='#1a1a2e'; ctx.beginPath(); ctx.ellipse(C-25,C-2,10,6,0,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.ellipse(C+25,C-2,10,6,0,0,Math.PI*2); ctx.stroke(); }
 function drawEyesSquint(){ ctx.strokeStyle='#1a1a2e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(C-40,C-8);ctx.quadraticCurveTo(C-25,C-4,C-10,C-8);ctx.stroke();ctx.beginPath();ctx.moveTo(C+10,C-8);ctx.quadraticCurveTo(C+25,C-4,C+40,C-8);ctx.stroke();ctx.lineWidth=1; }
-function drawEyeBase(){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(C-25, C-6, 14, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(C+25, C-6, 14, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#2c1810'; }
-function drawEyeHighlights(){ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(C-22,C-10,3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(C+28,C-10,3,0,Math.PI*2);ctx.fill(); }
 
 // Mouth
 function drawMouthSmile(){ ctx.strokeStyle='#c0394b';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(C,C-6,16,0.15*Math.PI,0.85*Math.PI);ctx.stroke(); }
@@ -255,6 +264,7 @@ function drawGlassesSquare(){ ctx.strokeStyle='#333';ctx.lineWidth=2.5;ctx.strok
 function drawGlassesShade(){ ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(C-45,C-22,36,32);ctx.fillRect(C+9,C-22,36,32);ctx.beginPath();ctx.moveTo(C-9,C-6);ctx.lineTo(C+9,C-6);ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.stroke(); }
 
 // Main draw
+var ctx; // declare at top so drawAvatar can use it
 function drawAvatar(){
   const c = document.getElementById('avatarCanvas');
   ctx = c.getContext('2d');
@@ -323,8 +333,15 @@ function buildControls(){
 }
 
 function switchOpt(part, idx){
-  const map = {Face:'selFace',Hair:'selHair',Eyes:'selEyes',Mouth:'selMouth',Brow:'selBrow',Glasses:'selGlasses',Skin:'selSkin',Cloth:'selCloth'};
-  window[map[part]] = idx;
+  // Directly assign to the correct variable (no window[] indirection)
+  if(part==='Face') selFace=idx;
+  else if(part==='Hair') selHair=idx;
+  else if(part==='Eyes') selEyes=idx;
+  else if(part==='Mouth') selMouth=idx;
+  else if(part==='Brow') selBrow=idx;
+  else if(part==='Glasses') selGlasses=idx;
+  else if(part==='Skin') selSkin=idx;
+  else if(part==='Cloth') selCloth=idx;
   drawAvatar();
   buildControls();
 }
@@ -339,9 +356,9 @@ async function getBaiduToken(){
   const cached = localStorage.getItem('baidu_ai_token');
   const exp = localStorage.getItem('baidu_ai_token_expire');
   if(cached && exp && Date.now() < parseInt(exp)){
-    // Still valid — refresh 1h before expiry
     if(Date.now() < parseInt(exp) - 3600000) return cached;
   }
+  if(!PROXY_BASE){ throw new Error('AI 功能需要本地代理服务器，请双击 start_电台.bat 启动'); }
   const body = 'grant_type=client_credentials&client_id=KG6nKngYjLFcRmh87TDjBEza&client_secret=l2J2Qh7U4lwvFAQopIWSuoYRzo4NgeeR';
   const resp = await fetch(PROXY_BASE+'/api/baidu/token', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
   const data = await resp.json();
@@ -396,6 +413,21 @@ function initMergeTemplates(){
 }
 function selectTemplate(i){ selectedTemplateIdx=i; initMergeTemplates(); }
 
+// Render SVG template to canvas, return PNG base64 (strip prefix)
+function templateToBase64(templateDataUrl){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = 200; c.height = 200;
+      c.getContext('2d').drawImage(img, 0, 0);
+      resolve(c.toDataURL('image/png').split(',')[1]);
+    };
+    img.onerror = () => reject(new Error('SVG render failed'));
+    img.src = templateDataUrl;
+  });
+}
+
 async function doMerge(input){
   if(!input.files.length) return;
   const file = input.files[0];
@@ -405,11 +437,11 @@ async function doMerge(input){
   try {
     const mergeBase64 = await toBase64(file);
     const token = await getBaiduToken();
-    const template = mergeTemplates[selectedTemplateIdx].dataUrl;
-    // Baidu merge API requires JSON nested format
+    // Render SVG template to PNG base64 (Baidu needs real image, not SVG data URL)
+    const templateBase64 = await templateToBase64(mergeTemplates[selectedTemplateIdx].dataUrl);
     const body = JSON.stringify({
       access_token: token,
-      image_template: { image: stripDataPrefix(template), image_type: 'BASE64' },
+      image_template: { image: templateBase64, image_type: 'BASE64' },
       image_target: { image: stripDataPrefix(mergeBase64), image_type: 'BASE64' },
       merge_degree: 'HIGH'
     });
@@ -420,7 +452,7 @@ async function doMerge(input){
       document.getElementById('mergeResult').style.display = 'block';
       showToast('融合完成！');
     } else {
-      showToast('融合失败: '+(data.error_msg||'未知错误'));
+      showToast('融合失败: '+(data.error_msg||JSON.stringify(data)));
     }
   } catch(e){ showToast('网络错误: '+e.message); }
   document.getElementById('mergeSpinner').style.display = 'none';
