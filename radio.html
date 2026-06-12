@@ -49,6 +49,7 @@
       <div class="visualizer" id="visualizer">
         ${Array.from({length:32},()=>'<div class="bar" style="height:6px;"></div>').join('')}
       </div>
+      <audio id="audioPlayer" style="display:none;" onended="onTrackEnd()" onerror="onAudioError()"></audio>
       <div class="player-controls">
         <button class="ctrl-btn" onclick="prevTrack()" title="上一首">⏮</button>
         <button class="ctrl-btn play-btn" id="playBtn" onclick="togglePlay()">▶</button>
@@ -71,20 +72,18 @@ const zz = zzLoad();
 let audioCtx = null;
 let currentTrack = -1;
 let isPlaying = false;
-let isMuted = false;
 let visInterval = null;
-let currentOsc = null;
-let currentGain = null;
+let isLoading = false;
 
 const playlist = [
-  { title:'晴天', artist:'周杰伦', freq:440, bpm:90 },
-  { title:'起风了', artist:'买辣椒也用券', freq:392, bpm:84 },
-  { title:'夜曲', artist:'周杰伦', freq:370, bpm:82 },
-  { title:'稻香', artist:'周杰伦', freq:415, bpm:80 },
-  { title:'光年之外', artist:'邓紫棋', freq:466, bpm:88 },
-  { title:'年少有为', artist:'李荣浩', freq:349, bpm:78 },
-  { title:'告白气球', artist:'周杰伦', freq:392, bpm:92 },
-  { title:'小幸运', artist:'田馥甄', freq:440, bpm:80 }
+  { title:'晴天', artist:'周杰伦', id:186016 },
+  { title:'好久不见', artist:'陈奕迅', id:65538 },
+  { title:'夜曲', artist:'周杰伦', id:186009 },
+  { title:'稻香', artist:'周杰伦', id:186031 },
+  { title:'光年之外', artist:'邓紫棋', id:460529 },
+  { title:'年少有为', artist:'李荣浩', id:1293886117 },
+  { title:'告白气球', artist:'周杰伦', id:418550088 },
+  { title:'富士山下', artist:'陈奕迅', id:65766 }
 ];
 
 function init(){
@@ -102,7 +101,20 @@ function renderPlaylist(){
   `).join('');
 }
 
-function selectTrack(i){
+let isLoading = false;
+
+// meting API: 获取网易云真实播放链接
+async function getAudioUrl(songId){
+  try {
+    const resp = await fetch(`https://api.i-meto.com/meting/api?server=netease&type=url&id=${songId}`);
+    const data = await resp.json();
+    if(data && data.length && data[0].url) return data[0].url;
+    // 降级：iframe 嵌入
+    return `https://music.163.com/outchain/player?type=2&id=${songId}&auto=0&height=66`;
+  } catch(e){ return null; }
+}
+
+async function selectTrack(i){
   stopAudio();
   currentTrack = i;
   renderPlaylist();
@@ -120,12 +132,13 @@ function updateNowPlaying(){
   }
 }
 
-function togglePlay(){
-  if(currentTrack<0){ selectTrack(0); startAudio(); isPlaying=true; }
+async function togglePlay(){
+  if(currentTrack<0){ selectTrack(0); }
   else if(isPlaying){ stopAudio(); isPlaying=false; }
-  else { startAudio(); isPlaying=true; }
+  else { isPlaying=true; }
   updatePlayBtn();
   updateDisplay();
+  if(isPlaying) startAudio();
 }
 
 function updatePlayBtn(){
@@ -137,62 +150,61 @@ function updateDisplay(){
   if(isPlaying) d.classList.add('playing'); else d.classList.remove('playing');
 }
 
-let melodyTimeout = null;
+async function startAudio(){
+  if(currentTrack<0 || isLoading) return;
+  const song = playlist[currentTrack];
+  isLoading = true;
+  document.getElementById('nowPlaying').textContent = '加载中...';
 
-function startAudio(){
-  try {
-    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    if(audioCtx.state==='suspended') audioCtx.resume();
+  const url = await getAudioUrl(song.id);
+  isLoading = false;
 
-    currentGain = audioCtx.createGain();
-    currentGain.gain.value = isMuted ? 0 : 0.08;
-    currentGain.connect(audioCtx.destination);
+  if(!url){ stopAudio(); isPlaying=false; updatePlayBtn(); showToast('获取播放链接失败'); return; }
 
-    const track = playlist[currentTrack];
-    playMelody(track.freq, track.bpm);
-    startVisualizer();
+  document.getElementById('nowPlaying').textContent = song.title;
+  document.getElementById('nowArtist').textContent = song.artist;
+
+  const audio = document.getElementById('audioPlayer');
+  // iframe 降级
+  if(url.includes('music.163.com/outchain')){
+    const iframe = document.createElement('iframe');
+    iframe.src = url;
+    iframe.style.cssText = 'width:100%;height:80px;border:none;margin-top:12px;';
+    document.querySelector('.radio-player').appendChild(iframe);
     document.getElementById('radioDisplay').style.background = 'var(--rose-light)';
-  } catch(e){ console.log('Audio start failed',e); }
+    startVisualizer();
+    return;
+  }
+  audio.src = url;
+  audio.play().catch(e=>{ console.log('Play failed',e); stopAudio(); isPlaying=false; updatePlayBtn(); });
+  document.getElementById('radioDisplay').style.background = 'var(--rose-light)';
+  startVisualizer();
 }
 
-function playMelody(baseFreq, bpm){
-  const beatMs = 60000 / bpm;
-  const notes = [1, 1.125, 1.25, 1.125, 1, 0.875, 0.75, 1, 0.75, 1.125, 1, 0.875, 1];
-  let step = 0;
+function onTrackEnd(){
+  nextTrack();
+}
 
-  function playNote(){
-    if(!isPlaying || !audioCtx || !currentGain) return;
-    if(currentOsc){ try{currentOsc.stop()}catch(e){} }
-
-    currentOsc = audioCtx.createOscillator();
-    currentOsc.type = step%4===0?'sine':'triangle';
-    const env = audioCtx.createGain();
-    env.gain.setValueAtTime(0.3, audioCtx.currentTime);
-    env.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime+beatMs/1000*0.8);
-    currentOsc.frequency.value = baseFreq * notes[step % notes.length];
-    currentOsc.connect(env);
-    env.connect(currentGain);
-    currentOsc.start(audioCtx.currentTime);
-    currentOsc.stop(audioCtx.currentTime + beatMs/1000*0.7);
-
-    step++;
-    melodyTimeout = setTimeout(playNote, beatMs);
-  }
-  playNote();
+function onAudioError(){
+  showToast('播放失败，尝试下一首');
+  nextTrack();
 }
 
 function stopAudio(){
-  if(melodyTimeout){ clearTimeout(melodyTimeout); melodyTimeout=null; }
-  if(currentOsc){ try{currentOsc.stop()}catch(e){} currentOsc=null; }
-  if(currentGain){ try{currentGain.disconnect()}catch(e){} currentGain=null; }
+  const audio = document.getElementById('audioPlayer');
+  audio.pause(); audio.src = '';
   stopVisualizer();
   document.getElementById('radioDisplay').style.background = 'var(--bg)';
+  // 清除 iframe
+  const iframe = document.querySelector('.radio-player iframe');
+  if(iframe) iframe.remove();
+  isLoading = false;
 }
 
 function toggleMute(){
-  isMuted = !isMuted;
-  document.getElementById('muteBtn').textContent = isMuted?'🔇 取消静音':'🔊 静音';
-  if(currentGain) currentGain.gain.value = isMuted ? 0 : 0.08;
+  const audio = document.getElementById('audioPlayer');
+  audio.muted = !audio.muted;
+  document.getElementById('muteBtn').textContent = audio.muted?'🔇 取消静音':'🔊 静音';
 }
 
 function startVisualizer(){

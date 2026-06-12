@@ -111,7 +111,8 @@ function initNav(currentPage){
     { href:'radio.html', label:'🎵 电台' },
     { href:'wall.html', label:'💬 留言墙' },
     { href:'quiz.html', label:'🏆 排行榜' },
-    { href:'editor.html', label:'⚙ 编辑器' }
+    { href:'editor.html', label:'⚙ 编辑器' },
+    { href:'survey.html', label:'📋 问卷' }
   ];
 
   const linksHTML = pages.map(p =>

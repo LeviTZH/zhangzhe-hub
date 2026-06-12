@@ -6,10 +6,13 @@
 <title>张哲画像馆 - 张哲的世界</title>
 <link rel="stylesheet" href="css/common.css">
 <style>
+.avatar-tabs { display:flex; gap:4px; margin-bottom:24px; justify-content:center; }
+.avatar-tab { padding:10px 24px; border:0.5px solid var(--border); border-radius:var(--radius) var(--radius) 0 0; background:var(--bg); cursor:pointer; font-size:14px; transition:all 0.2s; }
+.avatar-tab.active { background:var(--rose); color:#fff; border-color:var(--rose); }
 .avatar-workspace { display:grid; grid-template-columns:1fr 360px; gap:24px; }
 @media(max-width:768px){ .avatar-workspace { grid-template-columns:1fr; } }
 .preview-area { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:24px; text-align:center; min-height:400px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-.preview-area canvas { border-radius:var(--radius); max-width:100%; }
+.preview-area canvas { border-radius:50%; box-shadow:0 4px 24px rgba(0,0,0,0.12); }
 .controls { display:flex; flex-direction:column; gap:16px; }
 .control-group { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius-sm); padding:16px; }
 .control-group h4 { font-size:14px; margin-bottom:12px; color:var(--text-muted); }
@@ -20,165 +23,425 @@
 .color-options { display:flex; gap:8px; flex-wrap:wrap; }
 .color-dot { width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all 0.2s; }
 .color-dot.selected { border-color:var(--text); transform:scale(1.2); }
+/* AI tab */
+.ai-tab { display:none; }
+.ai-tab.active { display:block; }
+.ai-section { background:var(--surface); border:0.5px solid var(--border); border-radius:var(--radius); padding:24px; text-align:center; max-width:600px; margin:0 auto; }
+.upload-zone { border:2px dashed var(--border); border-radius:var(--radius); padding:40px 20px; cursor:pointer; transition:all 0.2s; margin-bottom:16px; }
+.upload-zone:hover { border-color:var(--rose); background:var(--rose-light); }
+.upload-zone input { display:none; }
+.result-img { max-width:100%; border-radius:var(--radius); display:none; margin-top:16px; }
+.merge-templates { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:16px 0; }
+.merge-template { border-radius:var(--radius); overflow:hidden; cursor:pointer; border:3px solid transparent; transition:all 0.2s; }
+.merge-template.selected { border-color:var(--rose); }
+.merge-template img { width:100%; display:block; }
+.loading-spin { display:none; margin:20px auto; width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--rose); border-radius:50%; animation:spin 0.8s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
 </style>
 </head>
 <body>
 <div class="nav" id="siteNav"></div>
 <div class="container">
   <h1 class="title">🎨 张哲画像馆</h1>
-  <p class="subtitle mb-24">DIY 专属于张哲的卡通头像</p>
+  <p class="subtitle mb-24">DIY 张哲专属头像 · AI 动漫化 · 人脸融合</p>
 
-  <div class="avatar-workspace">
+  <div class="avatar-tabs">
+    <button class="avatar-tab active" onclick="switchTab('manual')">✏️ 手动捏脸</button>
+    <button class="avatar-tab" onclick="switchTab('anime')">🤖 AI 动漫化</button>
+    <button class="avatar-tab" onclick="switchTab('merge')">🔀 人脸融合</button>
+  </div>
+
+  <!-- Tab 1: Manual Avatar Builder -->
+  <div id="tabManual" class="avatar-workspace">
     <div class="preview-area">
       <canvas id="avatarCanvas" width="300" height="300"></canvas>
       <button class="btn btn-primary mt-16" onclick="downloadAvatar()">📥 下载头像</button>
     </div>
+    <div class="controls" id="avatarControls"></div>
+  </div>
 
-    <div class="controls">
-      <div class="control-group">
-        <h4>👤 脸型</h4>
-        <div class="option-grid" id="faceOptions"></div>
+  <!-- Tab 2: AI Anime -->
+  <div id="tabAnime" class="ai-tab">
+    <div class="ai-section">
+      <h3>🤖 AI 动漫化</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin:8px 0 20px;">上传真人照片，百度 AI 自动转成动漫风格</p>
+      <div class="upload-zone" onclick="document.getElementById('animeFile').click()">
+        <div>📁 点击上传照片</div>
+        <div style="font-size:12px;color:var(--text-muted);">支持 JPG/PNG，≤ 4MB</div>
+        <input type="file" id="animeFile" accept="image/*" onchange="doAnime(this)">
       </div>
-      <div class="control-group">
-        <h4>👀 眼睛</h4>
-        <div class="option-grid" id="eyeOptions"></div>
+      <div class="loading-spin" id="animeSpinner"></div>
+      <img class="result-img" id="animeResult">
+    </div>
+  </div>
+
+  <!-- Tab 3: Face Merge -->
+  <div id="tabMerge" class="ai-tab">
+    <div class="ai-section">
+      <h3>🔀 人脸融合</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin:8px 0 16px;">选模板 + 上传照片，AI 融合生成新形象</p>
+      <div class="merge-templates" id="mergeTemplates"></div>
+      <div class="upload-zone" onclick="document.getElementById('mergeFile').click()">
+        <div>📁 上传你的照片</div>
+        <div style="font-size:12px;color:var(--text-muted);">JPG/PNG，≤ 4MB</div>
+        <input type="file" id="mergeFile" accept="image/*" onchange="doMerge(this)">
       </div>
-      <div class="control-group">
-        <h4>👄 嘴巴</h4>
-        <div class="option-grid" id="mouthOptions"></div>
-      </div>
-      <div class="control-group">
-        <h4>💇 发型</h4>
-        <div class="option-grid" id="hairOptions"></div>
-      </div>
-      <div class="control-group">
-        <h4>🎨 肤色</h4>
-        <div class="color-options" id="skinColors"></div>
-      </div>
-      <div class="control-group">
-        <h4>👕 衣服颜色</h4>
-        <div class="color-options" id="clothColors"></div>
-      </div>
+      <div class="loading-spin" id="mergeSpinner"></div>
+      <img class="result-img" id="mergeResult">
     </div>
   </div>
 </div>
 <script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
 <script src="js/common.js"></script>
 <script src="js/data.js"></script>
-
 <script>
 const zz = zzLoad();
-const parts = {
-  face: ['😊','😄','😎','🤓','😏','😌','😳','😤'],
-  eyes: ['👀','😍','🤩','😶'],
-  mouth: ['😗','😋','😛','🫤'],
-  hair: ['💇','🧑','👨','👩']
-};
-const skins = ['#fce4d6','#f8c9a8','#e8b88a','#d4a574','#c4956a','#f5d5c8'];
-const cloths = ['#e8536c','#4a8fe7','#3d9e8b','#7b5ea7','#d4a843','#333333','#ffffff'];
+const PROXY_BASE = 'http://127.0.0.1:8766';
 
-let state = { face:0, eyes:0, mouth:0, hair:0, skin:0, cloth:0 };
-
-function init(){
-  initNav('avatar.html');
-  renderControls();
-  drawAvatar();
+// ===== Tab Switching =====
+let currentTab = 'manual';
+function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.avatar-tab').forEach(t=>t.classList.toggle('active',false));
+  document.querySelectorAll('.avatar-tab').forEach(t=>{ if(t.textContent.includes(tab==='manual'?'手动':tab==='anime'?'动漫':'融合')) t.classList.add('active'); });
+  ['tabManual','tabAnime','tabMerge'].forEach(id=>document.getElementById(id).classList.remove('active'));
+  if(tab==='manual') document.getElementById('tabManual').style.display = 'grid';
+  else document.getElementById('tabManual').style.display = 'none';
+  document.getElementById('tab'+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add('active');
 }
 
-function renderControls(){
-  ['face','eyes','mouth','hair'].forEach(part=>{
-    document.getElementById(part+'Options').innerHTML = parts[part].map((e,i)=>
-      `<button class="option-btn${state[part]===i?' selected':''}" onclick="selectPart('${part}',${i})">${e}</button>`
-    ).join('');
-  });
-  document.getElementById('skinColors').innerHTML = skins.map((c,i)=>
-    `<div class="color-dot${state.skin===i?' selected':''}" style="background:${c}" onclick="selectPart('skin',${i})" title="肤色${i+1}"></div>`
-  ).join('');
-  document.getElementById('clothColors').innerHTML = cloths.map((c,i)=>
-    `<div class="color-dot${state.cloth===i?' selected':''}" style="background:${c}" onclick="selectPart('cloth',${i})" title="颜色${i+1}"></div>`
-  ).join('');
+// ====== Tab 1: Canvas 2D Avatar Engine ======
+const C = 150; // canvas center
+var selFace=0, selHair=0, selEyes=0, selMouth=0, selBrow=0, selGlasses=0, selSkin=0, selCloth=0;
+
+const skinColors = ['#FCE4D6','#F8C9A8','#E8B88A','#D4A574','#C4956A','#F5D5C8'];
+const clothColors = ['#E8536C','#4A8FE7','#3D9E8B','#7B5EA7','#D4A843','#333333','#FFFFFF'];
+const hairColorList = ['#1a1a2e','#2c1810','#3d2b1f','#4a3728','#2c1810'];
+
+// Face shapes
+const faceShapes = [
+  { name:'圆脸', fn:drawFaceRound },
+  { name:'方脸', fn:drawFaceSquare },
+  { name:'长脸', fn:drawFaceLong },
+  { name:'心形脸', fn:drawFaceHeart },
+  { name:'瓜子脸', fn:drawFacePointed },
+  { name:'椭圆脸', fn:drawFaceOval }
+];
+const hairStyles = [
+  { name:'短发', fn:drawHairShort },
+  { name:'碎盖', fn:drawHairMessy },
+  { name:'背头', fn:drawHairBack },
+  { name:'卷发', fn:drawHairCurly }
+];
+const eyeStyles = [
+  { name:'圆眼', fn:drawEyesRound },
+  { name:'笑眼', fn:drawEyesSmile },
+  { name:'大眼', fn:drawEyesBig },
+  { name:'眯眼', fn:drawEyesSquint }
+];
+const mouthStyles = [
+  { name:'微笑', fn:drawMouthSmile },
+  { name:'露齿笑', fn:drawMouthTeeth },
+  { name:'撇嘴', fn:drawMouthFrown },
+  { name:'O嘴', fn:drawMouthO }
+];
+const browStyles = [
+  { name:'平眉', fn:drawBrowFlat },
+  { name:'挑眉', fn:drawBrowRaised },
+  { name:'粗眉', fn:drawBrowThick },
+  { name:'囧眉', fn:drawBrowSad }
+];
+const glassesStyles = [
+  { name:'无', fn:null },
+  { name:'圆框', fn:drawGlassesRound },
+  { name:'方框', fn:drawGlassesSquare },
+  { name:'墨镜', fn:drawGlassesShade }
+];
+
+// Face drawing functions
+function drawFaceRound(c){ c.beginPath(); c.arc(C,C,64,0,Math.PI*2); c.fill(); }
+function drawFaceSquare(c){ c.beginPath(); drawRoundedRect2(c,C-58,C-62,116,126,18); c.fill(); }
+function drawFaceLong(c){ c.beginPath(); c.ellipse(C,C+3,55,75,0,0,Math.PI*2); c.fill(); }
+function drawFaceHeart(c){ c.beginPath(); c.moveTo(C,C+72); c.bezierCurveTo(C-85,C+30,C-70,C-55,C,C-62); c.bezierCurveTo(C+70,C-55,C+85,C+30,C,C+72); c.fill(); }
+function drawFacePointed(c){ c.beginPath(); c.moveTo(C,C-62); c.bezierCurveTo(C-70,C-30,C-65,C+50,C,C+72); c.bezierCurveTo(C+65,C+50,C+70,C-30,C,C-62); c.fill(); }
+function drawFaceOval(c){ c.beginPath(); c.ellipse(C,C+2,58,72,0,0,Math.PI*2); c.fill(); }
+
+// Hair drawing functions
+function drawHairShort(){
+  ctx.fillStyle = hairColorList[selHair%hairColorList.length];
+  ctx.beginPath();
+  ctx.moveTo(C-60, C-22);
+  ctx.quadraticCurveTo(C-68, C-60, C, C-70);
+  ctx.quadraticCurveTo(C+68, C-60, C+60, C-22);
+  ctx.quadraticCurveTo(C+50, C-32, C+38, C-28);
+  ctx.quadraticCurveTo(C, C-22, C-38, C-28);
+  ctx.quadraticCurveTo(C-50, C-32, C-60, C-22);
+  ctx.fill();
+  ctx.strokeStyle = '#2a2a3e'; ctx.lineWidth = 1.2;
+  for(let a of [-0.5,-0.15,0.15,0.5]){
+    ctx.beginPath(); ctx.moveTo(C+a*55, C-68); ctx.quadraticCurveTo(C+a*25, C-55, C+a*40, C-30); ctx.stroke();
+  }
+}
+function drawHairMessy(){
+  ctx.fillStyle = hairColorList[selHair%hairColorList.length];
+  ctx.beginPath();
+  ctx.moveTo(C-70, C-20);
+  ctx.quadraticCurveTo(C-80, C-78, C, C-88);
+  ctx.quadraticCurveTo(C+80, C-78, C+70, C-20);
+  ctx.lineTo(C+55, C-14); ctx.lineTo(C+42, C-20); ctx.lineTo(C+28, C-12);
+  ctx.lineTo(C+12, C-18); ctx.lineTo(C-2, C-10); ctx.lineTo(C-18, C-18);
+  ctx.lineTo(C-32, C-12); ctx.lineTo(C-45, C-16); ctx.lineTo(C-55, C-14);
+  ctx.lineTo(C-70, C-20);
+  ctx.fill();
+  ctx.strokeStyle = '#3d2618'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(C-35, C-82); ctx.quadraticCurveTo(C-25, C-96, C-15, C-90); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(C+20, C-84); ctx.quadraticCurveTo(C+30, C-98, C+40, C-92); ctx.stroke();
+}
+function drawHairBack(){
+  ctx.fillStyle = hairColorList[selHair%hairColorList.length];
+  ctx.beginPath();
+  ctx.moveTo(C-55, C-28);
+  ctx.quadraticCurveTo(C-70, C-75, C, C-80);
+  ctx.quadraticCurveTo(C+70, C-75, C+55, C-28);
+  ctx.quadraticCurveTo(C+58, C-32, C+45, C-30);
+  ctx.quadraticCurveTo(C, C-25, C-45, C-30);
+  ctx.quadraticCurveTo(C-58, C-32, C-55, C-28);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  ctx.beginPath(); ctx.ellipse(C-18, C-52, 14, 6, -0.3, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(C+12, C-58, 10, 4, 0.2, 0, Math.PI*2); ctx.fill();
+}
+function drawHairCurly(){
+  ctx.fillStyle = hairColorList[selHair%hairColorList.length];
+  ctx.beginPath();
+  ctx.moveTo(C-65, C-18);
+  ctx.bezierCurveTo(C-85, C-50, C-82, C-88, C, C-92);
+  ctx.bezierCurveTo(C+82, C-88, C+85, C-50, C+65, C-18);
+  ctx.quadraticCurveTo(C+55, C-10, C+40, C-8);
+  ctx.quadraticCurveTo(C, C-4, C-40, C-8);
+  ctx.quadraticCurveTo(C-55, C-10, C-65, C-18);
+  ctx.fill();
+  const curls = [[C-55,C-72,9],[C-22,C-80,10],[C+18,C-82,11],[C+48,C-74,9],[C-62,C-48,8],[C-30,C-58,9],[C+30,C-58,9],[C+62,C-48,8],[C-48,C-28,7],[C+48,C-28,7],[C,C-60,8]];
+  ctx.fillStyle = '#4a3525';
+  for(const [cx,cy,r] of curls){ ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill(); }
 }
 
-function selectPart(part,index){
-  state[part] = index;
-  renderControls();
-  drawAvatar();
-}
+// Eye drawing
+function drawEyesRound(){ drawEyeBase(); ctx.beginPath(); ctx.arc(C-25, C-8, 8, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(C+25, C-8, 8, 0, Math.PI*2); ctx.fill(); drawEyeHighlights(); }
+function drawEyesSmile(){ drawEyeBase(); ctx.beginPath(); ctx.arc(C-25, C-8, 10, 0.3*Math.PI, Math.PI*0.7); ctx.lineWidth=2.5; ctx.stroke(); ctx.beginPath(); ctx.arc(C+25, C-8, 10, 0.3*Math.PI, Math.PI*0.7); ctx.stroke(); ctx.lineWidth=1; }
+function drawEyesBig(){ drawEyeBase(); ctx.beginPath(); ctx.arc(C-25, C-6, 9, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(C+25, C-6, 9, 0, Math.PI*2); ctx.fill(); drawEyeHighlights(); ctx.strokeStyle='#1a1a2e'; ctx.beginPath(); ctx.ellipse(C-25,C-2,10,6,0,0,Math.PI*2); ctx.stroke(); ctx.beginPath(); ctx.ellipse(C+25,C-2,10,6,0,0,Math.PI*2); ctx.stroke(); }
+function drawEyesSquint(){ ctx.strokeStyle='#1a1a2e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(C-40,C-8);ctx.quadraticCurveTo(C-25,C-4,C-10,C-8);ctx.stroke();ctx.beginPath();ctx.moveTo(C+10,C-8);ctx.quadraticCurveTo(C+25,C-4,C+40,C-8);ctx.stroke();ctx.lineWidth=1; }
+function drawEyeBase(){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(C-25, C-6, 14, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(C+25, C-6, 14, 10, 0, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#2c1810'; }
+function drawEyeHighlights(){ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(C-22,C-10,3,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(C+28,C-10,3,0,Math.PI*2);ctx.fill(); }
 
+// Mouth
+function drawMouthSmile(){ ctx.strokeStyle='#c0394b';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(C,C-6,16,0.15*Math.PI,0.85*Math.PI);ctx.stroke(); }
+function drawMouthTeeth(){ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(C,C-6,14,0.1*Math.PI,0.9*Math.PI);ctx.fill();ctx.strokeStyle='#c0394b';ctx.lineWidth=2;ctx.beginPath();ctx.arc(C,C-6,14,0.1*Math.PI,0.9*Math.PI);ctx.stroke(); }
+function drawMouthFrown(){ ctx.strokeStyle='#c0394b';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(C,C+14,14,1.15*Math.PI,1.85*Math.PI);ctx.stroke(); }
+function drawMouthO(){ ctx.fillStyle='#c0394b';ctx.beginPath();ctx.ellipse(C,C+4,8,10,0,0,Math.PI*2);ctx.fill(); }
+function drawNose(){ ctx.strokeStyle='#d4a574';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(C-5,C+6);ctx.quadraticCurveTo(C,C+2,C+5,C+6);ctx.stroke(); }
+function drawBlush(){ ctx.fillStyle='rgba(232,83,108,0.15)';ctx.beginPath();ctx.ellipse(C-42,C+4,14,8,0,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(C+42,C+4,14,8,0,0,Math.PI*2);ctx.fill(); }
+function drawClothes(){ ctx.fillStyle=clothColors[selCloth];ctx.beginPath();ctx.arc(C,C,148,0,Math.PI*2);ctx.fill();ctx.fillStyle=clothColors[selCloth];ctx.fillRect(0,C,300,200); }
+
+// Brows
+function drawBrowFlat(){ ctx.strokeStyle=hairColorList[selHair%hairColorList.length];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(C-40,C-18);ctx.quadraticCurveTo(C-25,C-22,C-10,C-18);ctx.stroke();ctx.beginPath();ctx.moveTo(C+10,C-18);ctx.quadraticCurveTo(C+25,C-22,C+40,C-18);ctx.stroke(); }
+function drawBrowRaised(){ ctx.strokeStyle=hairColorList[selHair%hairColorList.length];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(C-40,C-22);ctx.quadraticCurveTo(C-25,C-28,C-10,C-22);ctx.stroke();ctx.beginPath();ctx.moveTo(C+10,C-22);ctx.quadraticCurveTo(C+25,C-28,C+40,C-22);ctx.stroke(); }
+function drawBrowThick(){ ctx.strokeStyle=hairColorList[selHair%hairColorList.length];ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(C-42,C-20);ctx.quadraticCurveTo(C-25,C-24,C-8,C-20);ctx.stroke();ctx.beginPath();ctx.moveTo(C+8,C-20);ctx.quadraticCurveTo(C+25,C-24,C+42,C-20);ctx.stroke(); }
+function drawBrowSad(){ ctx.strokeStyle=hairColorList[selHair%hairColorList.length];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(C-40,C-14);ctx.quadraticCurveTo(C-25,C-10,C-10,C-14);ctx.stroke();ctx.beginPath();ctx.moveTo(C+10,C-14);ctx.quadraticCurveTo(C+25,C-10,C+40,C-14);ctx.stroke(); }
+
+// Glasses
+function drawGlassesRound(){ ctx.strokeStyle='#333';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(C-25,C-6,18,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(C+25,C-6,18,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(C-7,C-6);ctx.lineTo(C+7,C-6);ctx.stroke(); }
+function drawGlassesSquare(){ ctx.strokeStyle='#333';ctx.lineWidth=2.5;ctx.strokeRect(C-42,C-22,34,32);ctx.strokeRect(C+8,C-22,34,32);ctx.beginPath();ctx.moveTo(C-8,C-6);ctx.lineTo(C+8,C-6);ctx.stroke(); }
+function drawGlassesShade(){ ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(C-45,C-22,36,32);ctx.fillRect(C+9,C-22,36,32);ctx.beginPath();ctx.moveTo(C-9,C-6);ctx.lineTo(C+9,C-6);ctx.strokeStyle='#333';ctx.lineWidth=2;ctx.stroke(); }
+
+// Main draw
 function drawAvatar(){
   const c = document.getElementById('avatarCanvas');
-  const ctx = c.getContext('2d');
-  const w=300,h=300;
-  ctx.clearRect(0,0,w,h);
+  ctx = c.getContext('2d');
+  ctx.clearRect(0,0,300,300);
+  // Background
+  var grad = ctx.createRadialGradient(C,C-30,20,C,C,160);
+  grad.addColorStop(0,'#FFE4EC'); grad.addColorStop(1,'#f0e6ef');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,300,300);
 
-  // background circle
-  ctx.beginPath(); ctx.arc(150,150,140,0,Math.PI*2);
-  ctx.fillStyle = '#fdf8f9'; ctx.fill();
+  // Clip circle
+  ctx.save();
+  ctx.beginPath(); ctx.arc(C,C,148,0,Math.PI*2); ctx.clip();
 
-  // body/clothes
-  ctx.beginPath(); ctx.arc(150,250,90,0,Math.PI);
-  ctx.fillStyle = cloths[state.cloth]; ctx.fill();
+  drawClothes();
+  // Neck
+  ctx.fillStyle = skinColors[selSkin]; ctx.fillRect(C-18,C+50,36,40);
+  // Face
+  ctx.fillStyle = skinColors[selSkin];
+  faceShapes[selFace].fn(ctx);
+  drawBlush();
+  browStyles[selBrow].fn();
+  eyeStyles[selEyes].fn();
+  drawNose();
+  mouthStyles[selMouth].fn();
+  if(glassesStyles[selGlasses].fn) glassesStyles[selGlasses].fn();
 
-  // face
-  ctx.beginPath(); ctx.arc(150,140,70,0,Math.PI*2);
-  ctx.fillStyle = skins[state.skin]; ctx.fill();
-
-  // hair
-  ctx.beginPath(); ctx.arc(150,125,75,Math.PI,0);
-  const hairColors = ['#2c1810','#3d2315','#1a1a2e','#8b4513','#4a3728'];
-  ctx.fillStyle = hairColors[state.hair % hairColors.length]; ctx.fill();
-
-  // eyes
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(125,135,18,14,0,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(175,135,18,14,0,0,Math.PI*2); ctx.fill();
-  const eyeColors = ['#2c1810','#3d6b9e','#5a3d2e','#1a5c1a'];
-  ctx.fillStyle = eyeColors[state.eyes % eyeColors.length];
-  ctx.beginPath(); ctx.arc(125,135,7,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.arc(175,135,7,0,Math.PI*2); ctx.fill();
-
-  // mouth
-  const mouths = [
-    ()=>{ ctx.beginPath(); ctx.arc(150,165,18,0.1*Math.PI,0.9*Math.PI); ctx.stroke(); },
-    ()=>{ ctx.beginPath(); ctx.arc(150,170,14,0,Math.PI); ctx.stroke(); },
-    ()=>{ ctx.beginPath(); ctx.ellipse(150,170,10,6,0,0,Math.PI*2); ctx.fill(); },
-    ()=>{ ctx.beginPath(); ctx.moveTo(140,170); ctx.lineTo(160,170); ctx.stroke(); }
-  ];
-  ctx.strokeStyle = '#c0394b'; ctx.lineWidth = 3; ctx.fillStyle = '#c0394b';
-  (mouths[state.mouth]||mouths[0])();
-
-  // eyebrows (based on face)
-  ctx.strokeStyle = hairColors[state.hair % hairColors.length];
-  ctx.lineWidth = 4;
-  const eyebrowArcs = [
-    ()=>{ ctx.beginPath(); ctx.moveTo(110,115); ctx.quadraticCurveTo(125,108,140,115); ctx.stroke(); ctx.beginPath(); ctx.moveTo(160,115); ctx.quadraticCurveTo(175,108,190,115); ctx.stroke(); },
-    ()=>{ ctx.beginPath(); ctx.moveTo(110,115); ctx.quadraticCurveTo(125,120,140,115); ctx.stroke(); ctx.beginPath(); ctx.moveTo(160,115); ctx.quadraticCurveTo(175,120,190,115); ctx.stroke(); },
-    ()=>{ ctx.beginPath(); ctx.moveTo(110,112); ctx.quadraticCurveTo(125,106,140,112); ctx.stroke(); ctx.beginPath(); ctx.moveTo(160,112); ctx.quadraticCurveTo(175,106,190,112); ctx.stroke(); },
-    ()=>{ ctx.beginPath(); ctx.moveTo(110,118); ctx.quadraticCurveTo(125,112,140,118); ctx.stroke(); ctx.beginPath(); ctx.moveTo(160,118); ctx.quadraticCurveTo(175,112,190,118); ctx.stroke(); }
-  ];
-  (eyebrowArcs[state.face]||eyebrowArcs[0])();
-
-  // blush
-  ctx.fillStyle = 'rgba(232,83,108,0.15)';
-  ctx.beginPath(); ctx.ellipse(108,155,14,8,0,0,Math.PI*2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(192,155,14,8,0,0,Math.PI*2); ctx.fill();
-
-  // Name label
-  ctx.fillStyle = 'var(--text)';
-  ctx.font = 'bold 16px ' + getComputedStyle(document.body).fontFamily;
-  ctx.textAlign = 'center';
-  ctx.fillText(zz.nickname||zz.name, 150, 285);
+  ctx.restore();
+  // Hair drawn on top (outside clip)
+  hairStyles[selHair].fn();
 }
 
 function downloadAvatar(){
-  const c = document.getElementById('avatarCanvas');
   const a = document.createElement('a');
-  a.href = c.toDataURL('image/png');
-  a.download = `zhangzhe-avatar-${Date.now()}.png`;
-  a.click();
-  showToast('头像已下载！');
+  a.href = document.getElementById('avatarCanvas').toDataURL('image/png');
+  a.download = 'zhangzhe-avatar-'+Date.now()+'.png';
+  a.click(); showToast('头像已下载');
 }
 
+// Build control buttons
+function buildControls(){
+  const groups = [
+    {id:'faceOpt',label:'👤 脸型',items:faceShapes,part:'Face',icon:true},
+    {id:'hairOpt',label:'💇 发型',items:hairStyles,part:'Hair',icon:true},
+    {id:'eyesOpt',label:'👀 眼睛',items:eyeStyles,part:'Eyes',icon:true},
+    {id:'mouthOpt',label:'👄 嘴巴',items:mouthStyles,part:'Mouth',icon:true},
+    {id:'browOpt',label:'〰️ 眉毛',items:browStyles,part:'Brow',icon:true},
+    {id:'glassOpt',label:'👓 眼镜',items:glassesStyles,part:'Glasses',icon:true}
+  ];
+  let html = '';
+  groups.forEach(g=>{
+    const sel = {'Face':selFace,'Hair':selHair,'Eyes':selEyes,'Mouth':selMouth,'Brow':selBrow,'Glasses':selGlasses}[g.part];
+    html += '<div class="control-group"><h4>'+g.label+'</h4><div class="option-grid">';
+    g.items.forEach((it,i)=>{
+      html += '<button class="option-btn'+(i===sel?' selected':'')+'" onclick="switchOpt(\''+g.part+'\','+i+')">'+(g.icon?it.name:'')+'</button>';
+    });
+    html += '</div></div>';
+  });
+  // Color pickers
+  html += '<div class="control-group"><h4>🎨 肤色</h4><div class="color-options">';
+  skinColors.forEach((c,i)=>html+='<div class="color-dot'+(i===selSkin?' selected':'')+'" style="background:'+c+'" onclick="switchOpt(\'Skin\','+i+')"></div>');
+  html += '</div></div>';
+  html += '<div class="control-group"><h4>👕 衣服</h4><div class="color-options">';
+  clothColors.forEach((c,i)=>html+='<div class="color-dot'+(i===selCloth?' selected':'')+'" style="background:'+c+';border-color:#ddd;" onclick="switchOpt(\'Cloth\','+i+')"></div>');
+  html += '</div></div>';
+  document.getElementById('avatarControls').innerHTML = html;
+}
+
+function switchOpt(part, idx){
+  const map = {Face:'selFace',Hair:'selHair',Eyes:'selEyes',Mouth:'selMouth',Brow:'selBrow',Glasses:'selGlasses',Skin:'selSkin',Cloth:'selCloth'};
+  window[map[part]] = idx;
+  drawAvatar();
+  buildControls();
+}
+
+// ====== Tab 2 & 3: Baidu AI ======
+function toBase64(file){ return new Promise((resolve,reject)=>{
+  const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(file);
+});}
+function stripDataPrefix(s){ return s.split(',')[1]; }
+
+async function getBaiduToken(){
+  const cached = localStorage.getItem('baidu_ai_token');
+  const exp = localStorage.getItem('baidu_ai_token_expire');
+  if(cached && exp && Date.now() < parseInt(exp)){
+    // Still valid — refresh 1h before expiry
+    if(Date.now() < parseInt(exp) - 3600000) return cached;
+  }
+  const body = 'grant_type=client_credentials&client_id=KG6nKngYjLFcRmh87TDjBEza&client_secret=l2J2Qh7U4lwvFAQopIWSuoYRzo4NgeeR';
+  const resp = await fetch(PROXY_BASE+'/api/baidu/token', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+  const data = await resp.json();
+  if(data.access_token){
+    localStorage.setItem('baidu_ai_token', data.access_token);
+    localStorage.setItem('baidu_ai_token_expire', String(Date.now() + (data.expires_in - 3600)*1000));
+    return data.access_token;
+  }
+  throw new Error('Token failed');
+}
+
+// AI Anime
+async function doAnime(input){
+  if(!input.files.length) return;
+  const file = input.files[0];
+  if(file.size > 4*1024*1024){ showToast('图片不能超过 4MB'); return; }
+  document.getElementById('animeSpinner').style.display = 'block';
+  document.getElementById('animeResult').style.display = 'none';
+  try {
+    const b64 = await toBase64(file);
+    const token = await getBaiduToken();
+    const body = new URLSearchParams();
+    body.append('image', stripDataPrefix(b64));
+    body.append('type', 'anime');
+    body.append('access_token', token);
+    const resp = await fetch(PROXY_BASE+'/api/baidu/anime', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+    const data = await resp.json();
+    if(data.image){
+      document.getElementById('animeResult').src = 'data:image/png;base64,'+data.image;
+      document.getElementById('animeResult').style.display = 'block';
+      showToast('动漫化完成！');
+    } else {
+      showToast('转换失败: '+(data.error_msg||'未知错误'));
+    }
+  } catch(e){ showToast('网络错误: '+e.message); }
+  document.getElementById('animeSpinner').style.display = 'none';
+}
+
+// Face Merge
+const mergeTemplates = [
+  { name:'模板1', dataUrl:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#fce4d6"/><circle cx="100" cy="80" r="60" fill="#f8c9a8"/><circle cx="75" cy="70" r="12" fill="#2c1810"/><circle cx="125" cy="70" r="12" fill="#2c1810"/><circle cx="75" cy="67" r="4" fill="#fff"/><circle cx="125" cy="67" r="4" fill="#fff"/><path d="M70 100 Q100 120 130 100" stroke="#c0394b" fill="none" stroke-width="3"/></svg>')},
+  { name:'模板2', dataUrl:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#edf4fd"/><circle cx="100" cy="80" r="55" fill="#fce4d6"/><circle cx="78" cy="72" r="10" fill="#1a1a2e"/><circle cx="122" cy="72" r="10" fill="#1a1a2e"/><path d="M80 105 Q100 115 120 105" stroke="#e8536c" fill="none" stroke-width="2.5"/></svg>')},
+  { name:'模板3', dataUrl:'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#e8f6f3"/><circle cx="100" cy="80" r="58" fill="#f8c9a8"/><circle cx="80" cy="68" r="11" fill="#3d2b1f"/><circle cx="120" cy="68" r="11" fill="#3d2b1f"/><ellipse cx="100" cy="105" rx="14" ry="8" fill="#c0394b"/></svg>')}
+];
+let selectedTemplateIdx = 0;
+
+function initMergeTemplates(){
+  document.getElementById('mergeTemplates').innerHTML = mergeTemplates.map((t,i)=>`
+    <div class="merge-template${i===selectedTemplateIdx?' selected':''}" onclick="selectTemplate(${i})">
+      <img src="${t.dataUrl}" alt="${t.name}">
+    </div>`).join('');
+}
+function selectTemplate(i){ selectedTemplateIdx=i; initMergeTemplates(); }
+
+async function doMerge(input){
+  if(!input.files.length) return;
+  const file = input.files[0];
+  if(file.size > 4*1024*1024){ showToast('图片不能超过 4MB'); return; }
+  document.getElementById('mergeSpinner').style.display = 'block';
+  document.getElementById('mergeResult').style.display = 'none';
+  try {
+    const mergeBase64 = await toBase64(file);
+    const token = await getBaiduToken();
+    const template = mergeTemplates[selectedTemplateIdx].dataUrl;
+    // Baidu merge API requires JSON nested format
+    const body = JSON.stringify({
+      access_token: token,
+      image_template: { image: stripDataPrefix(template), image_type: 'BASE64' },
+      image_target: { image: stripDataPrefix(mergeBase64), image_type: 'BASE64' },
+      merge_degree: 'HIGH'
+    });
+    const resp = await fetch(PROXY_BASE+'/api/baidu/merge', {method:'POST',headers:{'Content-Type':'application/json'},body});
+    const data = await resp.json();
+    if(data.result && data.result.merge_image){
+      document.getElementById('mergeResult').src = 'data:image/png;base64,'+data.result.merge_image;
+      document.getElementById('mergeResult').style.display = 'block';
+      showToast('融合完成！');
+    } else {
+      showToast('融合失败: '+(data.error_msg||'未知错误'));
+    }
+  } catch(e){ showToast('网络错误: '+e.message); }
+  document.getElementById('mergeSpinner').style.display = 'none';
+}
+
+function drawRoundedRect2(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+// Init
+function init(){
+  initNav('avatar.html');
+  switchTab('manual');
+  drawAvatar();
+  buildControls();
+  initMergeTemplates();
+}
 init();
 </script>
 </body>
