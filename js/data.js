@@ -255,6 +255,28 @@ async function surveySubmit(data) {
 }
 
 // ============================================================
+// 业务接口 — 问卷加载（zz_survey 表，最新一条）
+// ============================================================
+
+async function surveyLoad() {
+  await initBaaS();
+  if (!_baasReady) return null;
+  try {
+    const query = new BaaS.Query('zz_survey');
+    query.orderBy('created_at', 'desc');
+    query.limit(1);
+    const res = await query.find();
+    if (res.data.objects && res.data.objects.length > 0) {
+      return res.data.objects[0];
+    }
+    return null;
+  } catch (e) {
+    console.warn('[BaaS] 问卷加载失败:', e.message);
+    return null;
+  }
+}
+
+// ============================================================
 // 初始化：页面加载时自动初始化 BaaS（静默，不阻塞）
 // ============================================================
 if (typeof window !== 'undefined') {

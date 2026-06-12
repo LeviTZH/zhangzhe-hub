@@ -190,6 +190,8 @@ body { font-family:var(--font); background:var(--bg); color:var(--text); line-he
   <div class="submit-result" id="submitResult"></div>
 </div>
 
+<script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
+<script src="js/data.js"></script>
 <script>
 // ===== 问卷数据结构 =====
 const SECTIONS = [
@@ -428,6 +430,67 @@ function initSurvey(){
   });
 
   updateProgress();
+
+  // 加载云端已有数据
+  loadCloudData();
+}
+
+// ===== 从云端加载已提交的问卷数据 =====
+async function loadCloudData() {
+  if (typeof surveyLoad === 'undefined') return;
+  const data = await surveyLoad();
+  if (!data) return;
+
+  // 填充普通字段
+  SECTIONS.forEach(sec => {
+    if (sec.fields) {
+      sec.fields.forEach(f => {
+        const el = document.getElementById('field-' + f.key);
+        if (el && data[f.key] !== undefined) {
+          el.value = data[f.key];
+          if (el.value.trim()) markCompleted(sec.id);
+        }
+      });
+    }
+  });
+
+  // 填充 tags
+  if (SECTIONS.find(s => s.sections)) {
+    const favSec = SECTIONS.find(s => s.sections);
+    favSec.sections.forEach(sub => {
+      if (data[sub.key] && Array.isArray(data[sub.key])) {
+        surveyData[sub.key] = [...data[sub.key]];
+        renderTags(sub.key);
+      }
+    });
+    if (favSec.sections.some(sub => data[sub.key] && data[sub.key].length)) {
+      markCompleted('favorites');
+    }
+  }
+
+  // 填充 memories
+  if (data.memories && Array.isArray(data.memories)) {
+    surveyData['_memories'] = data.memories;
+    renderMemories('memories');
+    markCompleted('memories');
+  }
+
+  // 填充 quiz
+  if (data.quizQuestions && Array.isArray(data.quizQuestions)) {
+    surveyData['_quiz'] = data.quizQuestions;
+    renderQuiz('quiz');
+    markCompleted('quiz');
+  }
+
+  // 填充 adventure
+  if (data.adventureScenes && Array.isArray(data.adventureScenes)) {
+    surveyData['_adventure'] = data.adventureScenes;
+    renderAdventure('adventure');
+    markCompleted('adventure');
+  }
+
+  updateProgress();
+  showToast('☁️ 已加载云端数据');
 }
 
 // ===== Section toggle =====
@@ -727,7 +790,5 @@ document.addEventListener('input', function(e){
 // ===== 启动 =====
 initSurvey();
 </script>
-<script src="https://unpkg.com/minapp-sdk@3.23.6"></script>
-<script src="js/data.js"></script>
 </body>
 </html>
